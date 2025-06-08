@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import {
   Typography,
   Box,
@@ -17,7 +18,12 @@ import {
   ArrowForward,
   TrendingUp,
   Star,
+  Favorite,
+  Comment,
+  Share,
 } from "@mui/icons-material";
+// @ts-ignore
+import highlightImage from "../assets/Home/highlight.JPG";
 
 const featuredVehicles = [
   {
@@ -25,66 +31,72 @@ const featuredVehicles = [
     name: "Project RX-7",
     owner: "John Doe",
     image: "https://source.unsplash.com/random/800x600/?mazda-rx7",
-    likes: 234,
-    modifications: 12,
+    likes: 245,
+    comments: 32,
+    modifications: ["Turbo", "Coilovers", "Widebody"],
   },
   {
     id: 2,
-    name: "Supra Build",
+    name: "Civic Type R",
     owner: "Jane Smith",
-    image: "https://source.unsplash.com/random/800x600/?toyota-supra",
+    image: "https://source.unsplash.com/random/800x600/?honda-civic",
     likes: 189,
-    modifications: 8,
+    comments: 24,
+    modifications: ["Intake", "Exhaust", "Tune"],
   },
   {
     id: 3,
-    name: "Skyline GT-R",
+    name: "Supra MK4",
     owner: "Mike Johnson",
-    image: "https://source.unsplash.com/random/800x600/?nissan-skyline",
+    image: "https://source.unsplash.com/random/800x600/?toyota-supra",
     likes: 312,
-    modifications: 15,
+    comments: 45,
+    modifications: ["Single Turbo", "Built Engine", "Drag Setup"],
   },
 ];
 
 const upcomingEvents = [
   {
     id: 1,
-    title: "Summer Car Meet 2024",
-    date: "June 15, 2024",
-    location: "Central Park, New York",
-    attendees: 156,
+    title: "Cars & Coffee",
+    date: "2024-03-15",
+    location: "Downtown Plaza",
+    image: "https://source.unsplash.com/random/800x600/?car-meet",
   },
   {
     id: 2,
-    title: "Track Day Experience",
-    date: "July 20, 2024",
-    location: "Laguna Seca Raceway",
-    attendees: 89,
+    title: "Track Day",
+    date: "2024-03-20",
+    location: "Local Raceway",
+    image: "https://source.unsplash.com/random/800x600/?race-track",
   },
 ];
 
 const trendingTopics = [
-  "JDM Culture",
-  "Electric Vehicles",
-  "Track Racing",
-  "Car Modifications",
-  "Classic Cars",
-  "Supercars",
+  "JDM",
+  "Euro",
+  "Muscle",
+  "Classic",
+  "Drift",
+  "Drag",
+  "Show Car",
+  "Track Build",
 ];
 
 export const Home = () => {
+  const navigate = useNavigate();
+
   return (
     <Box>
       {/* Hero Section */}
       <Box
         sx={{
           position: "relative",
-          height: "500px",
-          display: "flex",
-          alignItems: "center",
-          overflow: "hidden",
+          height: "60vh",
+          minHeight: "500px",
           mb: 6,
-          borderRadius: "16px",
+          borderRadius: 4,
+          overflow: "hidden",
           "&::before": {
             content: '""',
             position: "absolute",
@@ -92,61 +104,69 @@ export const Home = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7))",
+            background:
+              "linear-gradient(to bottom, rgba(10, 15, 44, 0.7), rgba(10, 15, 44, 0.9))",
             zIndex: 1,
           },
         }}
       >
         <CardMedia
           component="img"
-          image="https://source.unsplash.com/random/1920x1080/?car-show"
-          alt="Hero"
+          image={highlightImage}
+          alt="Featured Car"
           sx={{
-            position: "absolute",
-            width: "100%",
             height: "100%",
             objectFit: "cover",
           }}
         />
-        <Container sx={{ position: "relative", zIndex: 2 }}>
-          <Box sx={{ maxWidth: "600px" }}>
-            <Typography
-              variant="h2"
-              component="h1"
-              gutterBottom
-              sx={{
-                color: "white",
-                fontWeight: 700,
-                textShadow: "0 2px 4px rgba(0,0,0,0.3)",
-              }}
-            >
-              Welcome to Car Enthusiast
-            </Typography>
-            <Typography
-              variant="h5"
-              sx={{
-                color: "white",
-                mb: 4,
-                textShadow: "0 2px 4px rgba(0,0,0,0.3)",
-              }}
-            >
-              Your ultimate platform for car enthusiasts. Connect, share, and
-              discover.
-            </Typography>
-            <Button
-              variant="contained"
-              size="large"
-              endIcon={<ArrowForward />}
-              sx={{
-                px: 4,
-                py: 1.5,
-                fontSize: "1.1rem",
-              }}
-            >
-              Get Started
-            </Button>
-          </Box>
-        </Container>
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            p: 4,
+            zIndex: 2,
+          }}
+        >
+          <Typography
+            variant="h2"
+            component="h1"
+            sx={{
+              color: "#d4af37",
+              mb: 2,
+              textShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
+            }}
+          >
+            Welcome to Car Enthusiast
+          </Typography>
+          <Typography
+            variant="h5"
+            sx={{
+              color: "#fdfdfd",
+              mb: 4,
+              maxWidth: "600px",
+            }}
+          >
+            Connect with fellow car enthusiasts, share your builds, and discover
+            amazing vehicles
+          </Typography>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<DirectionsCar />}
+            onClick={() => navigate("/garage")}
+            sx={{
+              backgroundColor: "#d4af37",
+              color: "#0a0f2c",
+              "&:hover": {
+                backgroundColor: "#e4bf47",
+              },
+            }}
+          >
+            Explore Garage
+          </Button>
+        </Box>
       </Box>
 
       {/* Featured Vehicles Section */}
@@ -159,19 +179,26 @@ export const Home = () => {
             mb: 3,
           }}
         >
-          <Typography
-            variant="h4"
-            component="h2"
-            sx={{ display: "flex", alignItems: "center" }}
-          >
-            <DirectionsCar sx={{ mr: 1, color: "primary.main" }} />
+          <Typography variant="h4" component="h2" sx={{ color: "#d4af37" }}>
             Featured Vehicles
           </Typography>
-          <Button endIcon={<ArrowForward />}>View All</Button>
+          <Button
+            variant="outlined"
+            sx={{
+              borderColor: "#d4af37",
+              color: "#d4af37",
+              "&:hover": {
+                borderColor: "#e4bf47",
+                backgroundColor: "rgba(212, 175, 55, 0.1)",
+              },
+            }}
+          >
+            View All
+          </Button>
         </Box>
         <Grid container spacing={3}>
           {featuredVehicles.map((vehicle) => (
-            <Grid item xs={12} md={4} key={vehicle.id}>
+            <Grid key={vehicle.id} item xs={12} md={4}>
               <Card
                 sx={{
                   height: "100%",
@@ -180,52 +207,62 @@ export const Home = () => {
                   transition: "transform 0.2s",
                   "&:hover": {
                     transform: "translateY(-4px)",
-                    boxShadow: 4,
                   },
                 }}
               >
                 <CardMedia
                   component="img"
-                  height="200"
+                  height="240"
                   image={vehicle.image}
                   alt={vehicle.name}
                 />
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                    <Avatar
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        mr: 1,
-                        bgcolor: "primary.main",
-                      }}
-                    >
-                      {vehicle.owner[0]}
-                    </Avatar>
-                    <Typography variant="body2" color="text.secondary">
+                    <Avatar sx={{ mr: 1 }}>{vehicle.owner[0]}</Avatar>
+                    <Typography variant="subtitle2" color="text.secondary">
                       {vehicle.owner}
                     </Typography>
                   </Box>
                   <Typography variant="h6" component="h3" gutterBottom>
                     {vehicle.name}
                   </Typography>
-                  <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-                    <Chip
-                      icon={<Star />}
-                      label={`${vehicle.likes} likes`}
+                  <Box
+                    sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}
+                  >
+                    {vehicle.modifications.map((mod) => (
+                      <Chip
+                        key={mod}
+                        label={mod}
+                        size="small"
+                        sx={{
+                          backgroundColor: "rgba(212, 175, 55, 0.1)",
+                          color: "#d4af37",
+                          border: "1px solid rgba(212, 175, 55, 0.2)",
+                        }}
+                      />
+                    ))}
+                  </Box>
+                  <Box sx={{ display: "flex", gap: 2 }}>
+                    <Button
+                      startIcon={<Favorite />}
                       size="small"
-                      variant="outlined"
-                    />
-                    <Chip
-                      icon={<Build />}
-                      label={`${vehicle.modifications} mods`}
+                      sx={{ color: "text.secondary" }}
+                    >
+                      {vehicle.likes}
+                    </Button>
+                    <Button
+                      startIcon={<Comment />}
                       size="small"
-                      variant="outlined"
+                      sx={{ color: "text.secondary" }}
+                    >
+                      {vehicle.comments}
+                    </Button>
+                    <Button
+                      startIcon={<Share />}
+                      size="small"
+                      sx={{ color: "text.secondary" }}
                     />
                   </Box>
-                  <Button variant="outlined" fullWidth>
-                    View Details
-                  </Button>
                 </CardContent>
               </Card>
             </Grid>
@@ -235,63 +272,52 @@ export const Home = () => {
 
       {/* Upcoming Events Section */}
       <Box sx={{ mb: 6 }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 3,
-          }}
+        <Typography
+          variant="h4"
+          component="h2"
+          sx={{ color: "#d4af37", mb: 3 }}
         >
-          <Typography
-            variant="h4"
-            component="h2"
-            sx={{ display: "flex", alignItems: "center" }}
-          >
-            <Event sx={{ mr: 1, color: "primary.main" }} />
-            Upcoming Events
-          </Typography>
-          <Button endIcon={<ArrowForward />}>View All</Button>
-        </Box>
+          Upcoming Events
+        </Typography>
         <Grid container spacing={3}>
           {upcomingEvents.map((event) => (
-            <Grid item xs={12} md={6} key={event.id}>
+            <Grid key={event.id} item xs={12} md={6}>
               <Card
                 sx={{
-                  height: "100%",
                   display: "flex",
-                  flexDirection: "column",
+                  height: "100%",
                   transition: "transform 0.2s",
                   "&:hover": {
                     transform: "translateY(-4px)",
-                    boxShadow: 4,
                   },
                 }}
               >
-                <CardContent>
+                <CardMedia
+                  component="img"
+                  sx={{ width: 200 }}
+                  image={event.image}
+                  alt={event.title}
+                />
+                <CardContent sx={{ flex: 1 }}>
                   <Typography variant="h6" component="h3" gutterBottom>
                     {event.title}
                   </Typography>
-                  <Box
+                  <Typography variant="body2" color="text.secondary" paragraph>
+                    {event.date} • {event.location}
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
                     sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 1,
-                      mb: 2,
+                      borderColor: "#d4af37",
+                      color: "#d4af37",
+                      "&:hover": {
+                        borderColor: "#e4bf47",
+                        backgroundColor: "rgba(212, 175, 55, 0.1)",
+                      },
                     }}
                   >
-                    <Typography variant="body2" color="text.secondary">
-                      📅 {event.date}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      📍 {event.location}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      👥 {event.attendees} attendees
-                    </Typography>
-                  </Box>
-                  <Button variant="contained" fullWidth>
-                    RSVP Now
+                    RSVP
                   </Button>
                 </CardContent>
               </Card>
@@ -305,22 +331,22 @@ export const Home = () => {
         <Typography
           variant="h4"
           component="h2"
-          sx={{ display: "flex", alignItems: "center", mb: 3 }}
+          sx={{ color: "#d4af37", mb: 3 }}
         >
-          <TrendingUp sx={{ mr: 1, color: "primary.main" }} />
           Trending Topics
         </Typography>
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-          {trendingTopics.map((topic, index) => (
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          {trendingTopics.map((topic) => (
             <Chip
-              key={index}
+              key={topic}
               label={topic}
               sx={{
+                backgroundColor: "rgba(212, 175, 55, 0.1)",
+                color: "#d4af37",
+                border: "1px solid rgba(212, 175, 55, 0.2)",
                 "&:hover": {
-                  backgroundColor: "primary.main",
-                  color: "white",
+                  backgroundColor: "rgba(212, 175, 55, 0.2)",
                 },
-                transition: "all 0.2s",
               }}
             />
           ))}
