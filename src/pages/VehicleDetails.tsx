@@ -35,97 +35,9 @@ import {
   Edit,
   Delete,
 } from "@mui/icons-material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-
-// Sample data - In a real app, this would come from an API
-const sampleVehicles = [
-  {
-    id: "1",
-    name: "Project RX-7",
-    make: "Mazda",
-    model: "RX-7",
-    year: 1993,
-    type: "Project Car",
-    horsepower: 280,
-    description:
-      "My dream project car. Currently undergoing a full restoration and engine rebuild.",
-    modifications: [
-      "13B-REW Engine Swap",
-      "Twin Turbo Setup",
-      "Coilover Suspension",
-      "Widebody Kit",
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    ],
-    status: "In Progress",
-    buildProgress: 65,
-    owner: {
-      name: "John Doe",
-      avatar: "https://i.pravatar.cc/150?img=1",
-    },
-  },
-  {
-    id: "2",
-    name: "Daily Driver Civic Type R",
-    make: "Honda",
-    model: "Civic Type R",
-    year: 2020,
-    type: "Daily Driver",
-    horsepower: 306,
-    description:
-      "My daily driver with some tasteful modifications for street use.",
-    modifications: [
-      "Cold Air Intake",
-      "Cat-back Exhaust",
-      "Lowering Springs",
-      "Wheel Spacers",
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    ],
-    status: "Complete",
-    buildProgress: 100,
-    owner: {
-      name: "John Doe",
-      avatar: "https://i.pravatar.cc/150?img=1",
-    },
-  },
-  {
-    id: "3",
-    name: "Show Car Supra",
-    make: "Toyota",
-    model: "Supra",
-    year: 2021,
-    type: "Show Car",
-    horsepower: 500,
-    description:
-      "Built for car shows and weekend drives. Full custom widebody and paint job.",
-    modifications: [
-      "Custom Widebody Kit",
-      "Stage 3 Turbo",
-      "Custom Paint Job",
-      "Air Suspension",
-      "Custom Interior",
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    ],
-    status: "Complete",
-    buildProgress: 100,
-    owner: {
-      name: "John Doe",
-      avatar: "https://i.pravatar.cc/150?img=1",
-    },
-  },
-];
+import { supabase } from "../services/supabase/client";
 
 const statusColors = {
   "In Progress": "#ff9800",
@@ -160,15 +72,37 @@ export const VehicleDetails = () => {
   const { id } = useParams();
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [vehicle, setVehicle] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Find the vehicle by ID
-  const vehicle = sampleVehicles.find((v) => v.id === id);
+  useEffect(() => {
+    const fetchVehicle = async () => {
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error || !data) {
+        navigate("/garage");
+      } else {
+        setVehicle(data);
+      }
+      setLoading(false);
+    };
+    fetchVehicle();
+  }, [id, navigate]);
 
-  // If vehicle not found, redirect to garage
-  if (!vehicle) {
-    navigate("/garage");
-    return null;
-  }
+  if (loading) return <div>Loading...</div>;
+  if (!vehicle) return null;
+
+  // Provide safe fallback for owner
+  const owner = vehicle.owner || {
+    name: "Anonymous",
+    avatar: "https://i.pravatar.cc/150?img=1"
+  };
+
+  // Provide safe fallback for status/type
+  const statusLabel = (vehicle.status || vehicle.type || "Unknown").toUpperCase();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
@@ -197,14 +131,14 @@ export const VehicleDetails = () => {
               {vehicle.name}
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-              <Avatar src={vehicle.owner.avatar} sx={{ mr: 1 }} />
+              <Avatar src={owner.avatar} sx={{ mr: 1 }} />
               <Typography variant="subtitle1" color="text.secondary">
-                {vehicle.owner.name}
+                {owner.name}
               </Typography>
             </Box>
           </Box>
           <Chip
-            label={vehicle.status.toUpperCase()}
+            label={statusLabel}
             sx={{
               backgroundColor: statusColors[vehicle.status],
               color: "white",

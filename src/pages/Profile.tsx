@@ -14,6 +14,12 @@ import {
   ListItemText,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Snackbar,
 } from "@mui/material";
 import {
   Edit,
@@ -33,6 +39,16 @@ export const Profile = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editUsername, setEditUsername] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({ open: false, message: "", severity: "success" });
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -53,6 +69,46 @@ export const Profile = () => {
     };
     fetchProfile();
   }, [user]);
+
+  const handleEditOpen = () => {
+    setEditName(profile?.name || "");
+    setEditUsername(profile?.username || "");
+    setEditBio(profile?.bio || "");
+    setEditOpen(true);
+  };
+
+  const handleEditClose = () => {
+    setEditOpen(false);
+  };
+
+  const handleEditSave = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        name: editName,
+        username: editUsername,
+        bio: editBio,
+      })
+      .eq("id", user.id);
+    setSaving(false);
+    if (error) {
+      setSnackbar({ open: true, message: error.message, severity: "error" });
+    } else {
+      setSnackbar({
+        open: true,
+        message: "Profile updated!",
+        severity: "success",
+      });
+      setProfile({
+        ...profile,
+        name: editName,
+        username: editUsername,
+        bio: editBio,
+      });
+      setEditOpen(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -132,12 +188,70 @@ export const Profile = () => {
             <Typography variant="body2" color="text.secondary" gutterBottom>
               {profile.email}
             </Typography>
-            <Button variant="outlined" startIcon={<Edit />} sx={{ mt: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<Edit />}
+              sx={{ mt: 2 }}
+              onClick={handleEditOpen}
+            >
               Edit Profile
             </Button>
           </Box>
         </Box>
       </Card>
+
+      <Dialog open={editOpen} onClose={handleEditClose} maxWidth="xs" fullWidth>
+        <DialogTitle>Edit Profile</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Name"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Username"
+            value={editUsername}
+            onChange={(e) => setEditUsername(e.target.value)}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Bio"
+            value={editBio}
+            onChange={(e) => setEditBio(e.target.value)}
+            fullWidth
+            multiline
+            minRows={2}
+            sx={{ mb: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleEditClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleEditSave}
+            variant="contained"
+            color="secondary"
+            disabled={saving}
+          >
+            {saving ? <CircularProgress size={20} color="inherit" /> : "Save"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity={snackbar.severity} sx={{ width: "100%" }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>

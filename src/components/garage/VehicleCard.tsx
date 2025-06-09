@@ -33,13 +33,13 @@ interface VehicleCardProps {
     model: string;
     year: number;
     type: string;
-    horsepower: number;
-    description: string;
-    modifications: string[];
-    images: string[];
-    status: "project" | "daily" | "show" | "track";
-    buildProgress: number;
-    owner: {
+    horsepower?: number;
+    description?: string;
+    modifications?: string[];
+    images?: string[];
+    status?: "project" | "daily" | "show" | "track";
+    buildProgress?: number;
+    owner?: {
       name: string;
       avatar: string;
     };
@@ -51,6 +51,14 @@ interface VehicleCardProps {
 const VehicleCard = ({ vehicle, onEdit, onDelete }: VehicleCardProps) => {
   const navigate = useNavigate();
   const handleCardClick = () => navigate(`/vehicle/${vehicle.id}`);
+
+  // Default values for optional fields
+  const defaultImage =
+    "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80";
+  const defaultOwner = {
+    name: "Anonymous",
+    avatar: "https://i.pravatar.cc/150?img=1",
+  };
 
   return (
     <Card
@@ -75,7 +83,7 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }: VehicleCardProps) => {
     >
       <CardMedia
         component="img"
-        image={vehicle.images[0]}
+        image={vehicle.images?.[0] || defaultImage}
         alt={vehicle.name}
         sx={{
           height: 240,
@@ -111,7 +119,7 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }: VehicleCardProps) => {
           {vehicle.make} {vehicle.model} ({vehicle.year})
         </Typography>
         <Chip
-          label={vehicle.status}
+          label={vehicle.status || vehicle.type}
           size="small"
           sx={{
             backgroundColor:
@@ -138,7 +146,7 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }: VehicleCardProps) => {
             textOverflow: "ellipsis",
           }}
         >
-          {vehicle.description}
+          {vehicle.description || "No description available"}
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: "auto" }}>
           {vehicle.modifications &&
