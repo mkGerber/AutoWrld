@@ -1,7 +1,8 @@
 import { Box, Typography, Grid, Button } from "@mui/material";
 import { Add } from "@mui/icons-material";
-import { VehicleCard } from "../components/garage/VehicleCard";
-import { useState } from "react";
+import VehicleCard from "../components/garage/VehicleCard";
+import { useState, useEffect } from "react";
+import { supabase } from "../services/supabase/client";
 
 // Sample data - this would come from your backend in a real application
 const sampleVehicles = [
@@ -77,6 +78,18 @@ const sampleVehicles = [
 
 export const Garage = () => {
   const [vehicles, setVehicles] = useState(sampleVehicles);
+
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (error) {
+        console.error("Supabase error:", error.message);
+      } else {
+        console.log("Vehicles:", data);
+      }
+    };
+    fetchVehicles();
+  }, []);
 
   const handleEdit = (id: number) => {
     // TODO: Implement edit functionality

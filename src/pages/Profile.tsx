@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Typography,
   Box,
@@ -11,6 +12,8 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   Edit,
@@ -22,24 +25,80 @@ import {
   Email,
   Phone,
 } from "@mui/icons-material";
-
-const mockUser = {
-  name: "John Doe",
-  username: "@johndoe",
-  avatar: "https://source.unsplash.com/random/200x200/?portrait",
-  bio: "Car enthusiast and track day regular. Currently working on a Mazda RX-7 project.",
-  location: "New York, NY",
-  email: "john.doe@example.com",
-  phone: "+1 (555) 123-4567",
-  stats: {
-    vehicles: 2,
-    events: 15,
-    modifications: 25,
-    photos: 156,
-  },
-};
+import { useAuth } from "../context/AuthContext";
+import { supabase } from "../services/supabase/client";
 
 export const Profile = () => {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      setLoading(true);
+      setError("");
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("name, username, bio, email, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (error) {
+        setError(error.message);
+      } else {
+        setProfile(data);
+      }
+      setLoading(false);
+    };
+    fetchProfile();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
+        <CircularProgress color="secondary" />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "60vh",
+        }}
+      >
+        <Alert severity="info">No profile found.</Alert>
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <Card sx={{ mb: 4 }}>
@@ -48,7 +107,7 @@ export const Profile = () => {
         />
         <Box sx={{ position: "relative", px: 3, pb: 3 }}>
           <Avatar
-            src={mockUser.avatar}
+            src={profile.avatar_url || ""}
             sx={{
               width: 120,
               height: 120,
@@ -57,16 +116,21 @@ export const Profile = () => {
               top: -60,
               left: 24,
             }}
-          />
+          >
+            {profile.name ? profile.name[0] : ""}
+          </Avatar>
           <Box sx={{ ml: 15, pt: 2 }}>
             <Typography variant="h4" component="h1" gutterBottom>
-              {mockUser.name}
+              {profile.name}
             </Typography>
             <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-              {mockUser.username}
+              @{profile.username}
             </Typography>
             <Typography variant="body1" paragraph>
-              {mockUser.bio}
+              {profile.bio}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              {profile.email}
             </Typography>
             <Button variant="outlined" startIcon={<Edit />} sx={{ mt: 2 }}>
               Edit Profile
@@ -89,20 +153,20 @@ export const Profile = () => {
                   </ListItemIcon>
                   <ListItemText
                     primary="Location"
-                    secondary={mockUser.location}
+                    secondary={profile.location}
                   />
                 </ListItem>
                 <ListItem>
                   <ListItemIcon>
                     <Email color="primary" />
                   </ListItemIcon>
-                  <ListItemText primary="Email" secondary={mockUser.email} />
+                  <ListItemText primary="Email" secondary={profile.email} />
                 </ListItem>
                 <ListItem>
                   <ListItemIcon>
                     <Phone color="primary" />
                   </ListItemIcon>
-                  <ListItemText primary="Phone" secondary={mockUser.phone} />
+                  <ListItemText primary="Phone" secondary={profile.phone} />
                 </ListItem>
               </List>
             </CardContent>
@@ -120,7 +184,7 @@ export const Profile = () => {
                   <Box sx={{ textAlign: "center", p: 2 }}>
                     <DirectionsCar color="primary" sx={{ fontSize: 40 }} />
                     <Typography variant="h4" sx={{ my: 1 }}>
-                      {mockUser.stats.vehicles}
+                      {profile.stats?.vehicles}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Vehicles
@@ -131,7 +195,7 @@ export const Profile = () => {
                   <Box sx={{ textAlign: "center", p: 2 }}>
                     <Event color="primary" sx={{ fontSize: 40 }} />
                     <Typography variant="h4" sx={{ my: 1 }}>
-                      {mockUser.stats.events}
+                      {profile.stats?.events}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Events
@@ -142,7 +206,7 @@ export const Profile = () => {
                   <Box sx={{ textAlign: "center", p: 2 }}>
                     <Build color="primary" sx={{ fontSize: 40 }} />
                     <Typography variant="h4" sx={{ my: 1 }}>
-                      {mockUser.stats.modifications}
+                      {profile.stats?.modifications}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Modifications
@@ -153,7 +217,7 @@ export const Profile = () => {
                   <Box sx={{ textAlign: "center", p: 2 }}>
                     <PhotoCamera color="primary" sx={{ fontSize: 40 }} />
                     <Typography variant="h4" sx={{ my: 1 }}>
-                      {mockUser.stats.photos}
+                      {profile.stats?.photos}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Photos

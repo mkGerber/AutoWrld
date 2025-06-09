@@ -191,3 +191,13 @@ car-enthusiast-web/
 ```
 
 This structure follows React best practices, with a clear separation of concerns and modular organization. The src directory contains all the business logic and components, while the public directory holds static assets.
+
+## Supabase RLS Policy for profiles table
+
+To allow users to select their own profile, use this policy:
+
+```sql
+create policy "Allow select for own profile"
+  on profiles for select
+  using (auth.uid() = id);
+```
