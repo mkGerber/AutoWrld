@@ -23,7 +23,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let didCancel = false;
-    // Helper to always clear loading
     const finish = (u: any) => {
       if (!didCancel) {
         setUser(u);
@@ -41,18 +40,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           finish(null);
           return;
         }
-        // Timeout fallback for user check
+        // Timeout fallback for getUser
         let timeout: NodeJS.Timeout;
         const userCheck = new Promise<any>(async (resolve) => {
           try {
             const { data, error } = await supabase.auth.getUser();
-            if (error || !data?.user) {
+            console.log("getUser() after reload:", { data, error });
+            if (error) {
+              console.error("getUser() error:", error);
               await supabase.auth.signOut();
               resolve(null);
             } else {
+              // If no error, keep the user even if data is null
               resolve(currentUser);
             }
           } catch (err) {
+            console.error("Error checking user existence:", err);
             resolve(null);
           }
         });
@@ -64,43 +67,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         ]);
         clearTimeout(timeout!);
         finish(result);
+        console.log("User after reload:", result);
       } catch (err) {
+        console.error("Error in AuthProvider initial session:", err);
         finish(null);
       }
     })();
-    // Listen for changes
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        let currentUser = session?.user ?? null;
-        try {
-          if (!currentUser) {
-            finish(null);
-            return;
-          }
-          let timeout: NodeJS.Timeout;
-          const userCheck = new Promise<any>(async (resolve) => {
-            try {
-              const { data, error } = await supabase.auth.getUser();
-              if (error || !data?.user) {
-                await supabase.auth.signOut();
-                resolve(null);
-              } else {
-                resolve(currentUser);
-              }
-            } catch (err) {
-              resolve(null);
-            }
-          });
-          const result = await Promise.race([
-            userCheck,
-            new Promise((resolve) => {
-              timeout = setTimeout(() => resolve(null), 3000);
-            }),
-          ]);
-          clearTimeout(timeout!);
-          finish(result);
-        } catch (err) {
+      async (event, session) => {
+        if (event === "SIGNED_OUT") {
           finish(null);
+          return;
+        }
+        if (session?.user) {
+          finish(session.user);
         }
       }
     );

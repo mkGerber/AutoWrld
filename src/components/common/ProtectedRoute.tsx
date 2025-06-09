@@ -87,7 +87,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  if (!user) {
+  if (!user && !loading) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
