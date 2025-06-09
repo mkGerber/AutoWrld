@@ -67,7 +67,8 @@ export const AddVehicleForm = ({
   });
 
   const [newModification, setNewModification] = useState("");
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const handleChange =
     (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,23 +96,26 @@ export const AddVehicleForm = ({
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
-        setFormData({
-          ...formData,
-          images: [...formData.images, reader.result as string],
-        });
-      };
-      reader.readAsDataURL(file);
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const fileArr = Array.from(files);
+      setSelectedFiles(fileArr);
+      // Generate previews
+      const readers = fileArr.map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          })
+      );
+      Promise.all(readers).then(setPreviewImages);
     }
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    onSubmit(formData);
+    onSubmit({ ...formData, files: selectedFiles });
     onClose();
   };
 
@@ -252,25 +256,31 @@ export const AddVehicleForm = ({
                   variant="outlined"
                   startIcon={<CloudUpload />}
                 >
-                  Upload Image
+                  Upload Images
                   <input
                     type="file"
                     hidden
                     accept="image/*"
+                    multiple
                     onChange={handleImageUpload}
                   />
                 </Button>
-                {previewImage && (
-                  <Box sx={{ mt: 2 }}>
-                    <img
-                      src={previewImage}
-                      alt="Preview"
-                      style={{
-                        maxWidth: "100%",
-                        maxHeight: "200px",
-                        borderRadius: "8px",
-                      }}
-                    />
+                {previewImages.length > 0 && (
+                  <Box
+                    sx={{ mt: 2, display: "flex", gap: 2, flexWrap: "wrap" }}
+                  >
+                    {previewImages.map((img, idx) => (
+                      <img
+                        key={idx}
+                        src={img}
+                        alt={`Preview ${idx + 1}`}
+                        style={{
+                          maxWidth: "100px",
+                          maxHeight: "100px",
+                          borderRadius: "8px",
+                        }}
+                      />
+                    ))}
                   </Box>
                 )}
               </Box>
@@ -297,3 +307,5 @@ export const AddVehicleForm = ({
     </Dialog>
   );
 };
+
+export default AddVehicleForm;

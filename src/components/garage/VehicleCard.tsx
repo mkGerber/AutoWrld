@@ -5,24 +5,7 @@ import {
   Typography,
   Box,
   Chip,
-  IconButton,
-  Grid,
-  Avatar,
-  Button,
-  Divider,
-  LinearProgress,
 } from "@mui/material";
-import {
-  Edit,
-  Delete,
-  PhotoLibrary,
-  Build,
-  Timeline,
-  Favorite,
-  Share,
-  Comment,
-} from "@mui/icons-material";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface VehicleCardProps {
@@ -36,7 +19,7 @@ interface VehicleCardProps {
     horsepower?: number;
     description?: string;
     modifications?: string[];
-    images?: string[];
+    images?: string[] | string;
     status?: "project" | "daily" | "show" | "track";
     buildProgress?: number;
     owner?: {
@@ -52,13 +35,39 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }: VehicleCardProps) => {
   const navigate = useNavigate();
   const handleCardClick = () => navigate(`/vehicle/${vehicle.id}`);
 
-  // Default values for optional fields
   const defaultImage =
     "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80";
-  const defaultOwner = {
-    name: "Anonymous",
-    avatar: "https://i.pravatar.cc/150?img=1",
-  };
+
+  let parsedImages: string[] = [];
+
+  try {
+    if (typeof vehicle.images === "string") {
+      const outer = JSON.parse(vehicle.images);
+
+      if (
+        Array.isArray(outer) &&
+        typeof outer[0] === "string" &&
+        outer[0].trim().startsWith("[")
+      ) {
+        parsedImages = JSON.parse(outer[0]);
+      } else if (Array.isArray(outer)) {
+        parsedImages = outer;
+      }
+    } else if (Array.isArray(vehicle.images)) {
+      parsedImages = vehicle.images;
+    }
+  } catch (err) {
+    console.warn("Image parsing failed:", err);
+    parsedImages = [];
+  }
+
+  let imageSrc =
+    Array.isArray(parsedImages) && parsedImages.length > 0
+      ? parsedImages[0]
+      : defaultImage;
+
+  //This removes the "[" and "]" from the imageSrc
+  imageSrc = imageSrc.slice(2, -2);
 
   return (
     <Card
@@ -83,7 +92,7 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }: VehicleCardProps) => {
     >
       <CardMedia
         component="img"
-        image={vehicle.images?.[0] || defaultImage}
+        image={imageSrc}
         alt={vehicle.name}
         sx={{
           height: 240,
@@ -91,8 +100,10 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }: VehicleCardProps) => {
           objectFit: "cover",
           borderTopLeftRadius: 12,
           borderTopRightRadius: 12,
+          display: "block",
         }}
       />
+
       <CardContent
         sx={{
           p: 3,
