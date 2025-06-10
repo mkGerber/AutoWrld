@@ -95,14 +95,42 @@ export const VehicleDetails = () => {
   if (loading) return <div>Loading...</div>;
   if (!vehicle) return null;
 
+  // Safely parse vehicle.images
+  let parsedImages: string[] = [];
+
+  try {
+    if (typeof vehicle.images === "string") {
+      const outer = JSON.parse(vehicle.images);
+
+      if (
+        Array.isArray(outer) &&
+        typeof outer[0] === "string" &&
+        outer[0].trim().startsWith("[")
+      ) {
+        parsedImages = JSON.parse(outer[0]);
+      } else if (Array.isArray(outer)) {
+        parsedImages = outer;
+      }
+    } else if (Array.isArray(vehicle.images)) {
+      parsedImages = vehicle.images;
+    }
+  } catch (err) {
+    console.warn("Image parsing failed:", err);
+    parsedImages = [];
+  }
+
   // Provide safe fallback for owner
   const owner = vehicle.owner || {
     name: "Anonymous",
-    avatar: "https://i.pravatar.cc/150?img=1"
+    avatar: "https://i.pravatar.cc/150?img=1",
   };
 
   // Provide safe fallback for status/type
-  const statusLabel = (vehicle.status || vehicle.type || "Unknown").toUpperCase();
+  const statusLabel = (
+    vehicle.status ||
+    vehicle.type ||
+    "Unknown"
+  ).toUpperCase();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
@@ -170,7 +198,7 @@ export const VehicleDetails = () => {
           >
             <CardMedia
               component="img"
-              image={vehicle.images[selectedImage]}
+              image={parsedImages[selectedImage]}
               alt={vehicle.name}
               sx={{ height: "100%", objectFit: "cover" }}
             />
@@ -189,7 +217,7 @@ export const VehicleDetails = () => {
               },
             }}
           >
-            {vehicle.images.map((image, index) => (
+            {parsedImages.map((image, index) => (
               <Box
                 key={index}
                 sx={{
@@ -390,7 +418,7 @@ export const VehicleDetails = () => {
               {selectedTab === 3 && (
                 <Box>
                   <Grid container spacing={2}>
-                    {vehicle.images.map((image, index) => (
+                    {parsedImages.map((image, index) => (
                       <Grid item xs={12} sm={6} md={4} key={index}>
                         <Paper
                           sx={{

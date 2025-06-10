@@ -44,6 +44,10 @@ export const Profile = () => {
   const [editUsername, setEditUsername] = useState("");
   const [editBio, setEditBio] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editAvatar, setEditAvatar] = useState<File | null>(null);
+  const [previewAvatar, setPreviewAvatar] = useState<string>(
+    profile?.avatar_url || ""
+  );
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -74,6 +78,8 @@ export const Profile = () => {
     setEditName(profile?.name || "");
     setEditUsername(profile?.username || "");
     setEditBio(profile?.bio || "");
+    setPreviewAvatar(profile?.avatar_url || "");
+    setEditAvatar(null);
     setEditOpen(true);
   };
 
@@ -226,6 +232,27 @@ export const Profile = () => {
             minRows={2}
             sx={{ mb: 2 }}
           />
+          <Box sx={{ textAlign: "center", mb: 2 }}>
+            <Avatar
+              src={previewAvatar}
+              sx={{ width: 80, height: 80, mx: "auto", mb: 1 }}
+            />
+            <Button variant="outlined" component="label">
+              Upload Picture
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setEditAvatar(file);
+                    setPreviewAvatar(URL.createObjectURL(file));
+                  }
+                }}
+              />
+            </Button>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleEditClose} disabled={saving}>
