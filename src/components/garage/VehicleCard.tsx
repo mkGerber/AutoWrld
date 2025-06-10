@@ -69,6 +69,11 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }: VehicleCardProps) => {
   //This removes the "[" and "]" from the imageSrc
   imageSrc = imageSrc.slice(2, -2);
 
+  //console.log(imageSrc);
+  //console.log(imageSrc.split('","'));
+
+  imageSrc = imageSrc.split('","')[0];
+
   return (
     <Card
       onClick={handleCardClick}

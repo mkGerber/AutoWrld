@@ -52,7 +52,7 @@ export const Layout = ({ children }: LayoutProps) => {
               }}
               onClick={() => navigate("/")}
             >
-              Car Enthusiast
+              AUTO WRLD
             </Typography>
           </Box>
           <Box sx={{ display: "flex", gap: 2 }}>
