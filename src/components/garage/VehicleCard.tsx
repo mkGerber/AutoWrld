@@ -166,7 +166,7 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }: VehicleCardProps) => {
         </Typography>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: "auto" }}>
           {vehicle.modifications &&
-            vehicle.modifications.slice(0, 2).map((mod, idx) => (
+            vehicle.modifications.map((mod, idx) => (
               <Chip
                 key={idx}
                 label={mod}

@@ -89,14 +89,47 @@ export const Profile = () => {
 
   const handleEditSave = async () => {
     setSaving(true);
+    let avatarUrl = profile?.avatar_url;
+
+    // If there's a new avatar file, upload it
+    if (editAvatar) {
+      const fileExt = editAvatar.name.split(".").pop();
+      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
+
+      // Upload the file to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, editAvatar);
+
+      if (uploadError) {
+        setSnackbar({
+          open: true,
+          message: uploadError.message,
+          severity: "error",
+        });
+        setSaving(false);
+        return;
+      }
+
+      // Get the public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(fileName);
+
+      avatarUrl = publicUrl;
+    }
+
+    // Update the profile with the new avatar URL
     const { error } = await supabase
       .from("profiles")
       .update({
         name: editName,
         username: editUsername,
         bio: editBio,
+        avatar_url: avatarUrl,
       })
-      .eq("id", user.id);
+      .eq("id", user?.id);
+
     setSaving(false);
     if (error) {
       setSnackbar({ open: true, message: error.message, severity: "error" });
@@ -111,6 +144,7 @@ export const Profile = () => {
         name: editName,
         username: editUsername,
         bio: editBio,
+        avatar_url: avatarUrl,
       });
       setEditOpen(false);
     }
