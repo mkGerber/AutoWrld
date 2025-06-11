@@ -161,6 +161,10 @@ export const VehicleDetails = () => {
     parsedImages = [];
   }
 
+  const reversedImages = Array.isArray(parsedImages)
+    ? parsedImages.slice().reverse()
+    : [];
+
   // Provide safe fallback for owner
   const owner = vehicle.owner || {
     name: "Anonymous",
@@ -318,7 +322,7 @@ export const VehicleDetails = () => {
           >
             <CardMedia
               component="img"
-              image={parsedImages[selectedImage]}
+              image={reversedImages[selectedImage]}
               alt={vehicle.name}
               sx={{ height: "100%", objectFit: "cover" }}
             />
@@ -337,7 +341,7 @@ export const VehicleDetails = () => {
               },
             }}
           >
-            {parsedImages.map((image, index) => (
+            {reversedImages.map((image, index) => (
               <Box
                 key={index}
                 sx={{
@@ -661,7 +665,7 @@ export const VehicleDetails = () => {
               {selectedTab === 3 && (
                 <Box>
                   <Grid container spacing={2}>
-                    {parsedImages.map((image: string, index: number) => (
+                    {reversedImages.map((image: string, index: number) => (
                       <Grid item xs={12} sm={6} md={4} key={index}>
                         <Paper
                           sx={{

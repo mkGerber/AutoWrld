@@ -5,8 +5,11 @@ import {
   Typography,
   Box,
   Chip,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { Delete } from "@mui/icons-material";
 
 interface VehicleCardProps {
   vehicle: {
@@ -61,6 +64,10 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }: VehicleCardProps) => {
     parsedImages = [];
   }
 
+  console.log("VehicleCard images field:", vehicle.images);
+  console.log("VehicleCard parsedImages:", parsedImages);
+
+  // For the cover image, use the first uploaded image
   let imageSrc =
     Array.isArray(parsedImages) && parsedImages.length > 0
       ? parsedImages[0]
@@ -93,8 +100,31 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }: VehicleCardProps) => {
         },
         m: "auto",
         background: "rgba(30, 30, 40, 0.98)",
+        position: "relative",
       }}
     >
+      {/* Delete button (top right) */}
+      {onDelete && (
+        <Tooltip title="Delete Vehicle">
+          <IconButton
+            size="small"
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              zIndex: 2,
+              color: "#d32f2f",
+              background: "rgba(0,0,0,0.2)",
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(vehicle.id);
+            }}
+          >
+            <Delete />
+          </IconButton>
+        </Tooltip>
+      )}
       <CardMedia
         component="img"
         image={imageSrc}

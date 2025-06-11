@@ -48,6 +48,10 @@ export const Profile = () => {
   const [previewAvatar, setPreviewAvatar] = useState<string>(
     profile?.avatar_url || ""
   );
+  const [editBanner, setEditBanner] = useState<File | null>(null);
+  const [previewBanner, setPreviewBanner] = useState<string>(
+    profile?.banner_url || ""
+  );
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -61,7 +65,7 @@ export const Profile = () => {
       setError("");
       const { data, error } = await supabase
         .from("profiles")
-        .select("name, username, bio, email, avatar_url")
+        .select("name, username, bio, email, avatar_url, banner_url")
         .eq("id", user.id)
         .maybeSingle();
       if (error) {
@@ -79,7 +83,9 @@ export const Profile = () => {
     setEditUsername(profile?.username || "");
     setEditBio(profile?.bio || "");
     setPreviewAvatar(profile?.avatar_url || "");
+    setPreviewBanner(profile?.banner_url || "");
     setEditAvatar(null);
+    setEditBanner(null);
     setEditOpen(true);
   };
 
@@ -90,6 +96,7 @@ export const Profile = () => {
   const handleEditSave = async () => {
     setSaving(true);
     let avatarUrl = profile?.avatar_url;
+    let bannerUrl = profile?.banner_url;
 
     // If there's a new avatar file, upload it
     if (editAvatar) {
@@ -119,7 +126,29 @@ export const Profile = () => {
       avatarUrl = publicUrl;
     }
 
-    // Update the profile with the new avatar URL
+    // If there's a new banner file, upload it
+    if (editBanner) {
+      const fileExt = editBanner.name.split(".").pop();
+      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("banners")
+        .upload(fileName, editBanner);
+      if (uploadError) {
+        setSnackbar({
+          open: true,
+          message: uploadError.message,
+          severity: "error",
+        });
+        setSaving(false);
+        return;
+      }
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("banners").getPublicUrl(fileName);
+      bannerUrl = publicUrl;
+    }
+
+    // Update the profile with the new avatar and banner URLs
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -127,6 +156,7 @@ export const Profile = () => {
         username: editUsername,
         bio: editBio,
         avatar_url: avatarUrl,
+        banner_url: bannerUrl,
       })
       .eq("id", user?.id);
 
@@ -139,13 +169,15 @@ export const Profile = () => {
         message: "Profile updated!",
         severity: "success",
       });
-      setProfile({
-        ...profile,
-        name: editName,
-        username: editUsername,
-        bio: editBio,
-        avatar_url: avatarUrl,
-      });
+      // Re-fetch the profile to ensure the latest data is loaded
+      const { data: refreshedProfile } = await supabase
+        .from("profiles")
+        .select("name, username, bio, email, avatar_url, banner_url")
+        .eq("id", user?.id)
+        .maybeSingle();
+      if (refreshedProfile) {
+        setProfile(refreshedProfile);
+      }
       setEditOpen(false);
     }
   };
@@ -199,7 +231,16 @@ export const Profile = () => {
     <Box>
       <Card sx={{ mb: 4 }}>
         <Box
-          sx={{ position: "relative", height: 200, bgcolor: "primary.main" }}
+          sx={{
+            position: "relative",
+            height: 200,
+            bgcolor: "primary.main",
+            backgroundImage: profile.banner_url
+              ? `url(${profile.banner_url})`
+              : undefined,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
         />
         <Box sx={{ position: "relative", px: 3, pb: 3 }}>
           <Avatar
@@ -266,6 +307,35 @@ export const Profile = () => {
             minRows={2}
             sx={{ mb: 2 }}
           />
+          <Box sx={{ textAlign: "center", mb: 2 }}>
+            <Box sx={{ mb: 1 }}>
+              <img
+                src={previewBanner}
+                alt="Banner Preview"
+                style={{
+                  width: "100%",
+                  maxHeight: 100,
+                  objectFit: "cover",
+                  borderRadius: 8,
+                }}
+              />
+            </Box>
+            <Button variant="outlined" component="label" sx={{ mb: 2 }}>
+              Upload Banner
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setEditBanner(file);
+                    setPreviewBanner(URL.createObjectURL(file));
+                  }
+                }}
+              />
+            </Button>
+          </Box>
           <Box sx={{ textAlign: "center", mb: 2 }}>
             <Avatar
               src={previewAvatar}

@@ -41,6 +41,8 @@ export const Garage = () => {
     message: string;
     severity: "success" | "error";
   }>({ open: false, message: "", severity: "success" });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState<any>(null);
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -160,6 +162,31 @@ export const Garage = () => {
     setSaving(false);
   };
 
+  const handleDeleteVehicle = (vehicle: any) => {
+    setVehicleToDelete(vehicle);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteVehicle = async () => {
+    if (!vehicleToDelete) return;
+    const { error } = await supabase
+      .from("vehicles")
+      .delete()
+      .eq("id", vehicleToDelete.id);
+    if (!error) {
+      setVehicles((prev) => prev.filter((v) => v.id !== vehicleToDelete.id));
+      setSnackbar({
+        open: true,
+        message: "Vehicle deleted!",
+        severity: "success",
+      });
+    } else {
+      setSnackbar({ open: true, message: error.message, severity: "error" });
+    }
+    setDeleteDialogOpen(false);
+    setVehicleToDelete(null);
+  };
+
   if (loading) {
     return (
       <Box
@@ -216,7 +243,10 @@ export const Garage = () => {
         <Grid container spacing={3}>
           {vehicles.map((vehicle) => (
             <Grid item xs={12} sm={6} md={4} key={vehicle.id}>
-              <VehicleCard vehicle={vehicle} />
+              <VehicleCard
+                vehicle={vehicle}
+                onDelete={() => handleDeleteVehicle(vehicle)}
+              />
             </Grid>
           ))}
         </Grid>
@@ -236,6 +266,25 @@ export const Garage = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Delete Vehicle</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete <b>{vehicleToDelete?.name}</b>?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={confirmDeleteVehicle}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
