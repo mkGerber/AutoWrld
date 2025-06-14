@@ -1,41 +1,44 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Typography,
   Box,
+  Typography,
+  Avatar,
+  Button,
   Grid,
   Card,
   CardContent,
-  Avatar,
-  Button,
-  Divider,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  CircularProgress,
-  Alert,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
+  CircularProgress,
+  Alert,
   Snackbar,
+  Paper,
 } from "@mui/material";
 import {
+  LocationOn,
+  Email,
+  Phone,
   Edit,
   DirectionsCar,
   Event,
   Build,
   PhotoCamera,
-  LocationOn,
-  Email,
-  Phone,
+  Logout,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 export const Profile = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -182,6 +185,16 @@ export const Profile = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   if (loading) {
     return (
       <Box
@@ -217,12 +230,39 @@ export const Profile = () => {
       <Box
         sx={{
           display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
           minHeight: "60vh",
+          gap: 2,
         }}
       >
         <Alert severity="info">No profile found.</Alert>
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={async () => {
+            if (!user) return;
+            try {
+              const { error } = await supabase.from("profiles").insert({
+                id: user.id,
+                name: user.email?.split("@")[0] || "New User",
+                email: user.email,
+                username: user.email?.split("@")[0] || "newuser",
+                bio: "",
+                avatar_url: "",
+                banner_url: "",
+              });
+              if (error) throw error;
+              // Refresh the page to show the new profile
+              window.location.reload();
+            } catch (error: any) {
+              setError(error.message);
+            }
+          }}
+        >
+          Create Basic Profile
+        </Button>
       </Box>
     );
   }
@@ -474,6 +514,18 @@ export const Profile = () => {
           </Card>
         </Grid>
       </Grid>
+
+      <Paper sx={{ p: 3, mt: 3, display: "flex", justifyContent: "center" }}>
+        <Button
+          variant="contained"
+          color="error"
+          startIcon={<Logout />}
+          onClick={handleSignOut}
+          sx={{ minWidth: 200 }}
+        >
+          Sign Out
+        </Button>
+      </Paper>
     </Box>
   );
 };

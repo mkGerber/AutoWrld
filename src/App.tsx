@@ -15,6 +15,7 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import SetupProfile from "./pages/SetupProfile";
+import { EventDetails } from "./pages/EventDetails";
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
                           path="/vehicle/:id"
                           element={<VehicleDetails />}
                         />
+                        <Route path="/events/:id" element={<EventDetails />} />
                       </Routes>
                     </ProtectedRoute>
                   }
