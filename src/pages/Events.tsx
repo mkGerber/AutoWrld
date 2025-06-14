@@ -17,12 +17,32 @@ import { supabase } from "../services/supabase/client";
 import { AddEventForm } from "../components/events/AddEventForm";
 import { EventRSVP } from "../components/events/EventRSVP";
 import { useNavigate } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import markerIconImg from "../assets/Map-marker.png";
+
+// Fix default icon issue for leaflet in webpack
+import iconUrl from "leaflet/dist/images/marker-icon.png";
+import iconShadow from "leaflet/dist/images/marker-shadow.png";
+L.Icon.Default.mergeOptions({
+  iconUrl,
+  shadowUrl: iconShadow,
+});
+
+const customIcon = new L.Icon({
+  iconUrl: markerIconImg,
+  iconSize: [48, 48],
+  iconAnchor: [24, 48],
+  popupAnchor: [0, -48],
+});
 
 export const Events = () => {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [addEventOpen, setAddEventOpen] = useState(false);
+  const [mapView, setMapView] = useState(false);
   const navigate = useNavigate();
 
   const fetchEvents = async () => {
@@ -126,21 +146,92 @@ export const Events = () => {
             Discover and join car events in your area
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => setAddEventOpen(true)}
-          sx={{
-            backgroundColor: "#d4af37",
-            color: "#0a0f2c",
-            "&:hover": { backgroundColor: "#e4bf47" },
-          }}
-        >
-          Create Event
-        </Button>
+        <Box sx={{ display: "flex", gap: 2 }}>
+          <Button
+            variant={mapView ? "outlined" : "contained"}
+            onClick={() => setMapView(false)}
+            sx={{
+              backgroundColor: !mapView ? "#d4af37" : undefined,
+              color: !mapView ? "#0a0f2c" : undefined,
+              "&:hover": { backgroundColor: !mapView ? "#e4bf47" : undefined },
+              minWidth: 120,
+            }}
+          >
+            List View
+          </Button>
+          <Button
+            variant={mapView ? "contained" : "outlined"}
+            onClick={() => setMapView(true)}
+            sx={{
+              backgroundColor: mapView ? "#d4af37" : undefined,
+              color: mapView ? "#0a0f2c" : undefined,
+              "&:hover": { backgroundColor: mapView ? "#e4bf47" : undefined },
+              minWidth: 120,
+            }}
+          >
+            Map View
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => setAddEventOpen(true)}
+            sx={{
+              backgroundColor: "#d4af37",
+              color: "#0a0f2c",
+              "&:hover": { backgroundColor: "#e4bf47" },
+            }}
+          >
+            Create Event
+          </Button>
+        </Box>
       </Box>
 
-      {events.length === 0 ? (
+      {mapView ? (
+        <Box
+          sx={{
+            height: 500,
+            width: "100%",
+            mb: 4,
+            borderRadius: 2,
+            overflow: "hidden",
+            boxShadow: 2,
+          }}
+        >
+          <MapContainer
+            center={[37.0902, -95.7129]}
+            zoom={4}
+            style={{ height: "100%", width: "100%" }}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="&copy; OpenStreetMap contributors"
+            />
+            {events
+              .filter((e) => e.latitude && e.longitude)
+              .map((event) => (
+                <Marker
+                  key={event.id}
+                  position={[event.latitude, event.longitude]}
+                  icon={customIcon}
+                >
+                  <Popup>
+                    <strong>{event.title}</strong>
+                    <br />
+                    {event.location}
+                    <br />
+                    <Button
+                      size="small"
+                      onClick={() => handleEventClick(event.id)}
+                      sx={{ mt: 1 }}
+                    >
+                      View Details
+                    </Button>
+                  </Popup>
+                </Marker>
+              ))}
+          </MapContainer>
+        </Box>
+      ) : events.length === 0 ? (
         <Box sx={{ textAlign: "center", mt: 4 }}>
           <Typography variant="h6" color="text.secondary">
             No events found

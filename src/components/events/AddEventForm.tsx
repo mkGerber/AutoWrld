@@ -11,10 +11,16 @@ import {
   Typography,
   IconButton,
   CircularProgress,
+  InputAdornment,
 } from "@mui/material";
 import { PhotoCamera, Delete } from "@mui/icons-material";
 import { supabase } from "../../services/supabase/client";
 import { useAuth } from "../../context/AuthContext";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import axios from "axios";
+import markerIconImg from "../../assets/Map-marker.png";
 
 interface AddEventFormProps {
   open: boolean;
@@ -30,6 +36,21 @@ const eventTypes = [
   "Workshop",
   "Other",
 ];
+
+// Fix default icon issue for leaflet in webpack
+import iconUrl from "leaflet/dist/images/marker-icon.png";
+import iconShadow from "leaflet/dist/images/marker-shadow.png";
+L.Icon.Default.mergeOptions({
+  iconUrl,
+  shadowUrl: iconShadow,
+});
+
+const customIcon = new L.Icon({
+  iconUrl: markerIconImg,
+  iconSize: [48, 48],
+  iconAnchor: [24, 48],
+  popupAnchor: [0, -48],
+});
 
 export const AddEventForm = ({
   open,
@@ -50,6 +71,11 @@ export const AddEventForm = ({
     type: "",
     max_attendees: "",
   });
+  const [marker, setMarker] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   const handleChange =
     (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,6 +118,50 @@ export const AddEventForm = ({
     return publicUrl;
   };
 
+  const handleMapClick = (e: { latlng: { lat: number; lng: number } }) => {
+    setMarker(e.latlng);
+  };
+
+  // Custom component to handle map click events
+  function LocationMarker() {
+    useMapEvents({
+      click: handleMapClick,
+    });
+    return marker ? <Marker position={marker} icon={customIcon} /> : null;
+  }
+
+  const handleFindOnMap = async () => {
+    setGeoError(null);
+    if (!formData.location) return;
+    setGeoLoading(true);
+    try {
+      const response = await axios.get(
+        "https://nominatim.openstreetmap.org/search",
+        {
+          params: {
+            q: formData.location,
+            format: "json",
+            limit: 1,
+          },
+          headers: {
+            "Accept-Language": "en",
+          },
+        }
+      );
+      const results = response.data;
+      if (results && results.length > 0) {
+        const { lat, lon } = results[0];
+        setMarker({ lat: parseFloat(lat), lng: parseFloat(lon) });
+      } else {
+        setGeoError("Address not found. Please try a different address.");
+      }
+    } catch (err) {
+      setGeoError("Failed to geocode address. Please try again.");
+    } finally {
+      setGeoLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!user) return;
     setLoading(true);
@@ -123,6 +193,8 @@ export const AddEventForm = ({
           : null,
         image_url: imageUrl,
         created_by: user.id,
+        latitude: marker?.lat ?? null,
+        longitude: marker?.lng ?? null,
       });
 
       if (error) throw error;
@@ -141,6 +213,7 @@ export const AddEventForm = ({
       });
       setSelectedImage(null);
       setPreviewUrl("");
+      setMarker(null);
     } catch (error) {
       console.error("Error creating event:", error);
     } finally {
@@ -194,7 +267,70 @@ export const AddEventForm = ({
             value={formData.location}
             onChange={handleChange("location")}
             required
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end" sx={{ pr: 1 }}>
+                  <Button
+                    onClick={handleFindOnMap}
+                    disabled={!formData.location || geoLoading}
+                    size="medium"
+                    variant="contained"
+                    sx={{
+                      minWidth: 80,
+                      px: 1.5,
+                      py: 0.5,
+                      fontSize: "0.95rem",
+                      backgroundColor: "#d4af37",
+                      color: "#0a0f2c",
+                      fontWeight: 600,
+                      boxShadow: "none",
+                      borderRadius: 2,
+                      "&:hover": {
+                        backgroundColor: "#e4bf47",
+                        boxShadow: "none",
+                      },
+                    }}
+                  >
+                    {geoLoading ? "Finding..." : "Find on Map"}
+                  </Button>
+                </InputAdornment>
+              ),
+            }}
           />
+          {geoError && (
+            <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+              {geoError}
+            </Typography>
+          )}
+          <Box
+            sx={{
+              height: 250,
+              width: "100%",
+              borderRadius: 2,
+              overflow: "hidden",
+              mb: 2,
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Click the map to set the event location:
+            </Typography>
+            <MapContainer
+              center={[37.0902, -95.7129]}
+              zoom={4}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+              />
+              <LocationMarker />
+            </MapContainer>
+            {marker && (
+              <Typography variant="caption" color="text.secondary">
+                Selected: {marker.lat.toFixed(5)}, {marker.lng.toFixed(5)}
+              </Typography>
+            )}
+          </Box>
           <TextField
             select
             label="Event Type"
