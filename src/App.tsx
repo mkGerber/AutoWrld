@@ -16,6 +16,7 @@ import SignUp from "./pages/SignUp";
 import ResetPassword from "./pages/ResetPassword";
 import SetupProfile from "./pages/SetupProfile";
 import { EventDetails } from "./pages/EventDetails";
+import { Discover } from "./pages/Discover";
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
                         <Route path="/events" element={<Events />} />
                         <Route path="/garage" element={<Garage />} />
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/discover" element={<Discover />} />
                         <Route
                           path="/vehicle/:id"
                           element={<VehicleDetails />}

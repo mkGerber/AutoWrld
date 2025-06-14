@@ -10,6 +10,7 @@ import {
   Container,
   Avatar,
   Chip,
+  CircularProgress,
 } from "@mui/material";
 import {
   DirectionsCar,
@@ -21,9 +22,14 @@ import {
   Favorite,
   Comment,
   Share,
+  CalendarMonth,
+  LocationOn,
+  People,
 } from "@mui/icons-material";
 // @ts-ignore
 import highlightImage from "../assets/Home/highlight.JPG";
+import { useState, useEffect } from "react";
+import { supabase } from "../services/supabase/client";
 
 const featuredVehicles = [
   {
@@ -55,23 +61,6 @@ const featuredVehicles = [
   },
 ];
 
-const upcomingEvents = [
-  {
-    id: 1,
-    title: "Cars & Coffee",
-    date: "2024-03-15",
-    location: "Downtown Plaza",
-    image: "https://source.unsplash.com/random/800x600/?car-meet",
-  },
-  {
-    id: 2,
-    title: "Track Day",
-    date: "2024-03-20",
-    location: "Local Raceway",
-    image: "https://source.unsplash.com/random/800x600/?race-track",
-  },
-];
-
 const trendingTopics = [
   "JDM",
   "Euro",
@@ -85,38 +74,144 @@ const trendingTopics = [
 
 export const Home = () => {
   const navigate = useNavigate();
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [featuredVehicles, setFeaturedVehicles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch upcoming events
+        const { data: eventsData, error: eventsError } = await supabase
+          .from("events")
+          .select(
+            `
+            *,
+            created_by:profiles(name, avatar_url)
+          `
+          )
+          .gte("date", new Date().toISOString())
+          .order("date", { ascending: true })
+          .limit(2);
+
+        if (eventsError) throw eventsError;
+
+        // Fetch attendee counts for all events
+        const { data: attendeeCounts, error: countsError } = await supabase
+          .from("event_attendees")
+          .select("event_id")
+          .in(
+            "event_id",
+            eventsData.map((event) => event.id)
+          );
+
+        if (countsError) throw countsError;
+
+        // Count attendees for each event
+        const attendeeCountMap =
+          attendeeCounts?.reduce((acc, curr) => {
+            acc[curr.event_id] = (acc[curr.event_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>) || {};
+
+        // Combine the data
+        const eventsWithCounts = eventsData.map((event) => ({
+          ...event,
+          attendees: [
+            {
+              count: attendeeCountMap[event.id] || 0,
+            },
+          ],
+        }));
+
+        setUpcomingEvents(eventsWithCounts);
+
+        // Fetch recent vehicles with owner profiles
+        const { data: vehiclesData, error: vehiclesError } = await supabase
+          .from("vehicles")
+          .select(
+            `
+            *,
+            user:profiles!user_id(name, avatar_url)
+          `
+          )
+          .order("created_at", { ascending: false })
+          .limit(3);
+
+        if (vehiclesError) throw vehiclesError;
+
+        // Transform vehicle data
+        const transformedVehicles = vehiclesData.map((vehicle) => {
+          // Parse images
+          let parsedImages: string[] = [];
+          try {
+            if (typeof vehicle.images === "string") {
+              const outer = JSON.parse(vehicle.images);
+              if (
+                Array.isArray(outer) &&
+                typeof outer[0] === "string" &&
+                outer[0].trim().startsWith("[")
+              ) {
+                parsedImages = JSON.parse(outer[0]);
+              } else if (Array.isArray(outer)) {
+                parsedImages = outer;
+              }
+            } else if (Array.isArray(vehicle.images)) {
+              parsedImages = vehicle.images;
+            }
+          } catch (err) {
+            console.warn("Image parsing failed:", err);
+            parsedImages = [];
+          }
+
+          // Get the first image or use a fallback
+          const imageSrc =
+            Array.isArray(parsedImages) && parsedImages.length > 0
+              ? parsedImages[0].replace(/^\["|"\]$/g, "") // Remove [" and "] if present
+              : "https://source.unsplash.com/random/800x600/?car";
+
+          return {
+            id: vehicle.id,
+            name: vehicle.name,
+            owner: vehicle.user?.name || "Anonymous",
+            image: imageSrc,
+            likes: 0, // TODO: Implement likes system
+            comments: 0, // TODO: Implement comments system
+            modifications: vehicle.modifications || [],
+          };
+        });
+
+        setFeaturedVehicles(transformedVehicles);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
-    <Box>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Hero Section */}
       <Box
         sx={{
           position: "relative",
-          height: "60vh",
-          minHeight: "500px",
-          mb: 6,
+          height: 400,
           borderRadius: 4,
           overflow: "hidden",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background:
-              "linear-gradient(to bottom, rgba(10, 15, 44, 0.7), rgba(10, 15, 44, 0.9))",
-            zIndex: 1,
-          },
+          mb: 6,
         }}
       >
         <CardMedia
           component="img"
           image={highlightImage}
-          alt="Featured Car"
+          alt="Car Meet"
           sx={{
             height: "100%",
             objectFit: "cover",
+            filter: "brightness(0.7)",
           }}
         />
         <Box
@@ -126,76 +221,41 @@ export const Home = () => {
             left: 0,
             right: 0,
             p: 4,
-            zIndex: 2,
+            background: "linear-gradient(transparent, rgba(0, 0, 0, 0.8))",
+            color: "white",
           }}
         >
-          <Typography
-            variant="h2"
-            component="h1"
-            sx={{
-              color: "#d4af37",
-              mb: 2,
-              textShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
-            }}
-          >
-            Welcome to Car Enthusiast
+          <Typography variant="h3" component="h1" gutterBottom>
+            Welcome to Car Meet
           </Typography>
-          <Typography
-            variant="h5"
-            sx={{
-              color: "#fdfdfd",
-              mb: 4,
-              maxWidth: "600px",
-            }}
-          >
-            Connect with fellow car enthusiasts, share your builds, and discover
-            amazing vehicles
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Connect with car enthusiasts, share your builds, and join events
           </Typography>
           <Button
             variant="contained"
             size="large"
-            startIcon={<DirectionsCar />}
-            onClick={() => navigate("/garage")}
+            endIcon={<ArrowForward />}
             sx={{
               backgroundColor: "#d4af37",
               color: "#0a0f2c",
-              "&:hover": {
-                backgroundColor: "#e4bf47",
-              },
+              "&:hover": { backgroundColor: "#e4bf47" },
             }}
+            onClick={() => navigate("/events")}
           >
-            Explore Garage
+            Explore Events
           </Button>
         </Box>
       </Box>
 
       {/* Featured Vehicles Section */}
       <Box sx={{ mb: 6 }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 3,
-          }}
+        <Typography
+          variant="h4"
+          component="h2"
+          sx={{ color: "#d4af37", mb: 3 }}
         >
-          <Typography variant="h4" component="h2" sx={{ color: "#d4af37" }}>
-            Featured Vehicles
-          </Typography>
-          <Button
-            variant="outlined"
-            sx={{
-              borderColor: "#d4af37",
-              color: "#d4af37",
-              "&:hover": {
-                borderColor: "#e4bf47",
-                backgroundColor: "rgba(212, 175, 55, 0.1)",
-              },
-            }}
-          >
-            View All
-          </Button>
-        </Box>
+          Featured Vehicles
+        </Typography>
         <Grid container spacing={3}>
           {featuredVehicles.map((vehicle) => (
             <Grid key={vehicle.id} item xs={12} md={4}>
@@ -212,33 +272,24 @@ export const Home = () => {
               >
                 <CardMedia
                   component="img"
-                  height="240"
+                  height="200"
                   image={vehicle.image}
                   alt={vehicle.name}
                 />
                 <CardContent sx={{ flexGrow: 1 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                    <Avatar sx={{ mr: 1 }}>{vehicle.owner[0]}</Avatar>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      {vehicle.owner}
-                    </Typography>
-                  </Box>
                   <Typography variant="h6" component="h3" gutterBottom>
                     {vehicle.name}
                   </Typography>
-                  <Box
-                    sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}
-                  >
-                    {vehicle.modifications.map((mod) => (
+                  <Typography variant="body2" color="text.secondary" paragraph>
+                    Owner: {vehicle.owner}
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    {vehicle.modifications.map((mod, index) => (
                       <Chip
-                        key={mod}
+                        key={index}
                         label={mod}
                         size="small"
-                        sx={{
-                          backgroundColor: "rgba(212, 175, 55, 0.1)",
-                          color: "#d4af37",
-                          border: "1px solid rgba(212, 175, 55, 0.2)",
-                        }}
+                        sx={{ mr: 1, mb: 1 }}
                       />
                     ))}
                   </Box>
@@ -279,51 +330,92 @@ export const Home = () => {
         >
           Upcoming Events
         </Typography>
-        <Grid container spacing={3}>
-          {upcomingEvents.map((event) => (
-            <Grid key={event.id} item xs={12} md={6}>
-              <Card
-                sx={{
-                  display: "flex",
-                  height: "100%",
-                  transition: "transform 0.2s",
-                  "&:hover": {
-                    transform: "translateY(-4px)",
-                  },
-                }}
-              >
-                <CardMedia
-                  component="img"
-                  sx={{ width: 200 }}
-                  image={event.image}
-                  alt={event.title}
-                />
-                <CardContent sx={{ flex: 1 }}>
-                  <Typography variant="h6" component="h3" gutterBottom>
-                    {event.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    {event.date} • {event.location}
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    sx={{
-                      borderColor: "#d4af37",
-                      color: "#d4af37",
-                      "&:hover": {
-                        borderColor: "#e4bf47",
-                        backgroundColor: "rgba(212, 175, 55, 0.1)",
-                      },
-                    }}
-                  >
-                    RSVP
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : upcomingEvents.length === 0 ? (
+          <Box sx={{ textAlign: "center", p: 4 }}>
+            <Typography variant="h6" color="text.secondary">
+              No upcoming events
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Be the first to create an event!
+            </Typography>
+            <Button
+              variant="contained"
+              sx={{
+                mt: 2,
+                backgroundColor: "#d4af37",
+                color: "#0a0f2c",
+                "&:hover": { backgroundColor: "#e4bf47" },
+              }}
+              onClick={() => navigate("/events")}
+            >
+              Create Event
+            </Button>
+          </Box>
+        ) : (
+          <Grid container spacing={3}>
+            {upcomingEvents.map((event) => (
+              <Grid key={event.id} item xs={12} md={6}>
+                <Card
+                  sx={{
+                    display: "flex",
+                    height: "100%",
+                    transition: "transform 0.2s",
+                    "&:hover": {
+                      transform: "translateY(-4px)",
+                    },
+                    cursor: "pointer",
+                  }}
+                  onClick={() => navigate(`/events/${event.id}`)}
+                >
+                  <CardMedia
+                    component="img"
+                    sx={{ width: 200 }}
+                    image={
+                      event.image_url ||
+                      "https://source.unsplash.com/random/800x600/?car-meet"
+                    }
+                    alt={event.title}
+                  />
+                  <CardContent sx={{ flex: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                      <Avatar
+                        src={event.created_by?.avatar_url}
+                        sx={{ width: 24, height: 24, mr: 1 }}
+                      />
+                      <Typography variant="body2" color="text.secondary">
+                        {event.created_by?.name || "Unknown Creator"}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h6" component="h3" gutterBottom>
+                      {event.title}
+                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                      <CalendarMonth sx={{ mr: 1, color: "text.secondary" }} />
+                      <Typography variant="body2">
+                        {new Date(event.date).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                      <LocationOn sx={{ mr: 1, color: "text.secondary" }} />
+                      <Typography variant="body2">{event.location}</Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      <People sx={{ mr: 1, color: "text.secondary" }} />
+                      <Typography variant="body2">
+                        {event.attendees?.[0]?.count || 0} attendees
+                        {event.max_attendees && ` / ${event.max_attendees} max`}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
       </Box>
 
       {/* Trending Topics Section */}
@@ -335,7 +427,7 @@ export const Home = () => {
         >
           Trending Topics
         </Typography>
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
           {trendingTopics.map((topic) => (
             <Chip
               key={topic}
@@ -343,7 +435,6 @@ export const Home = () => {
               sx={{
                 backgroundColor: "rgba(212, 175, 55, 0.1)",
                 color: "#d4af37",
-                border: "1px solid rgba(212, 175, 55, 0.2)",
                 "&:hover": {
                   backgroundColor: "rgba(212, 175, 55, 0.2)",
                 },
@@ -352,6 +443,6 @@ export const Home = () => {
           ))}
         </Box>
       </Box>
-    </Box>
+    </Container>
   );
 };

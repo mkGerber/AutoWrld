@@ -9,7 +9,13 @@ import {
   Container,
   useTheme,
 } from "@mui/material";
-import { DirectionsCar, Event, Home, Person } from "@mui/icons-material";
+import {
+  DirectionsCar,
+  Event,
+  Home,
+  Person,
+  Explore,
+} from "@mui/icons-material";
 
 interface LayoutProps {
   children: ReactNode;
@@ -22,6 +28,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
   const navItems = [
     { label: "Home", path: "/", icon: <Home /> },
+    { label: "Discover", path: "/discover", icon: <Explore /> },
     { label: "Events", path: "/events", icon: <Event /> },
     { label: "Garage", path: "/garage", icon: <DirectionsCar /> },
     { label: "Profile", path: "/profile", icon: <Person /> },
