@@ -226,7 +226,7 @@ export const Home = () => {
           }}
         >
           <Typography variant="h3" component="h1" gutterBottom>
-            Welcome to Car Meet
+            Welcome to Auto Wrld
           </Typography>
           <Typography variant="h6" sx={{ mb: 2 }}>
             Connect with car enthusiasts, share your builds, and join events

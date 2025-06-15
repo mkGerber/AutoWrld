@@ -11,6 +11,8 @@ import {
   CircularProgress,
   Alert,
   CardActions,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { CalendarMonth, LocationOn, People, Add } from "@mui/icons-material";
 import { supabase } from "../services/supabase/client";
@@ -44,6 +46,8 @@ export const Events = () => {
   const [addEventOpen, setAddEventOpen] = useState(false);
   const [mapView, setMapView] = useState(false);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -108,7 +112,14 @@ export const Events = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          mt: isMobile ? 2 : 4,
+          px: isMobile ? 2 : 0,
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -116,9 +127,11 @@ export const Events = () => {
 
   if (error) {
     return (
-      <Box sx={{ mt: 4 }}>
+      <Box sx={{ mt: isMobile ? 2 : 4, px: isMobile ? 2 : 0 }}>
         <Alert severity="error">
-          <Typography variant="h6">Error Loading Events</Typography>
+          <Typography variant={isMobile ? "h6" : "h5"}>
+            Error Loading Events
+          </Typography>
           <Typography variant="body2">{error}</Typography>
           <Button onClick={fetchEvents} sx={{ mt: 2 }} variant="outlined">
             Try Again
@@ -129,24 +142,39 @@ export const Events = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ px: isMobile ? 0.5 : 0 }}>
       <Box
         sx={{
-          mb: 4,
-          display: "flex",
+          mb: isMobile ? 2 : 4,
+          display: isMobile ? "block" : "flex",
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: isMobile ? "flex-start" : "center",
+          gap: isMobile ? 2 : 0,
         }}
       >
-        <Box>
-          <Typography variant="h4" component="h1" gutterBottom>
+        <Box sx={{ mb: isMobile ? 2 : 0 }}>
+          <Typography
+            variant={isMobile ? "h5" : "h4"}
+            component="h1"
+            gutterBottom
+          >
             Upcoming Events
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography
+            variant={isMobile ? "body2" : "body1"}
+            color="text.secondary"
+          >
             Discover and join car events in your area
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            gap: isMobile ? 1 : 2,
+            flexDirection: isMobile ? "column" : "row",
+            width: isMobile ? "100%" : "auto",
+          }}
+        >
           <Button
             variant={mapView ? "outlined" : "contained"}
             onClick={() => setMapView(false)}
@@ -154,7 +182,9 @@ export const Events = () => {
               backgroundColor: !mapView ? "#d4af37" : undefined,
               color: !mapView ? "#0a0f2c" : undefined,
               "&:hover": { backgroundColor: !mapView ? "#e4bf47" : undefined },
-              minWidth: 120,
+              minWidth: isMobile ? "100%" : 120,
+              fontSize: isMobile ? "1rem" : "1.1rem",
+              py: isMobile ? 1.2 : 1.5,
             }}
           >
             List View
@@ -166,7 +196,9 @@ export const Events = () => {
               backgroundColor: mapView ? "#d4af37" : undefined,
               color: mapView ? "#0a0f2c" : undefined,
               "&:hover": { backgroundColor: mapView ? "#e4bf47" : undefined },
-              minWidth: 120,
+              minWidth: isMobile ? "100%" : 120,
+              fontSize: isMobile ? "1rem" : "1.1rem",
+              py: isMobile ? 1.2 : 1.5,
             }}
           >
             Map View
@@ -179,6 +211,9 @@ export const Events = () => {
               backgroundColor: "#d4af37",
               color: "#0a0f2c",
               "&:hover": { backgroundColor: "#e4bf47" },
+              minWidth: isMobile ? "100%" : 140,
+              fontSize: isMobile ? "1rem" : "1.1rem",
+              py: isMobile ? 1.2 : 1.5,
             }}
           >
             Create Event
@@ -189,9 +224,9 @@ export const Events = () => {
       {mapView ? (
         <Box
           sx={{
-            height: 500,
+            height: isMobile ? 300 : 500,
             width: "100%",
-            mb: 4,
+            mb: isMobile ? 2 : 4,
             borderRadius: 2,
             overflow: "hidden",
             boxShadow: 2,
@@ -232,8 +267,8 @@ export const Events = () => {
           </MapContainer>
         </Box>
       ) : events.length === 0 ? (
-        <Box sx={{ textAlign: "center", mt: 4 }}>
-          <Typography variant="h6" color="text.secondary">
+        <Box sx={{ textAlign: "center", mt: isMobile ? 2 : 4 }}>
+          <Typography variant={isMobile ? "h6" : "h5"} color="text.secondary">
             No events found
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
@@ -241,7 +276,7 @@ export const Events = () => {
           </Typography>
         </Box>
       ) : (
-        <Grid container spacing={3}>
+        <Grid container spacing={isMobile ? 2 : 3}>
           {events.map((event) => (
             <Grid item xs={12} sm={6} md={4} key={event.id}>
               <Card
@@ -254,50 +289,93 @@ export const Events = () => {
                     transform: "translateY(-4px)",
                     transition: "transform 0.2s ease-in-out",
                   },
+                  minHeight: isMobile ? 320 : 380,
                 }}
                 onClick={() => handleEventClick(event.id)}
               >
                 <CardMedia
                   component="img"
-                  height="200"
+                  height={isMobile ? "140" : "200"}
                   image={
                     event.image_url ||
                     "https://source.unsplash.com/random/800x600/?car-meet"
                   }
                   alt={event.title}
                 />
-                <CardContent sx={{ flexGrow: 1 }}>
+                <CardContent sx={{ flexGrow: 1, p: isMobile ? 1.5 : 2 }}>
                   <Chip
                     label={event.type}
                     size="small"
-                    sx={{ mb: 1 }}
+                    sx={{
+                      mb: 1,
+                      fontSize: isMobile ? "0.9rem" : undefined,
+                      height: isMobile ? 22 : 24,
+                    }}
                     color="primary"
                   />
-                  <Typography gutterBottom variant="h5" component="h2">
+                  <Typography
+                    gutterBottom
+                    variant={isMobile ? "h6" : "h5"}
+                    component="h2"
+                  >
                     {event.title}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    paragraph
+                    sx={{ fontSize: isMobile ? "0.97rem" : undefined }}
+                  >
                     {event.description}
                   </Typography>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                    <CalendarMonth sx={{ mr: 1, color: "text.secondary" }} />
-                    <Typography variant="body2">
+                    <CalendarMonth
+                      sx={{
+                        mr: 1,
+                        color: "text.secondary",
+                        fontSize: isMobile ? 18 : 24,
+                      }}
+                    />
+                    <Typography
+                      variant="body2"
+                      sx={{ fontSize: isMobile ? "0.97rem" : undefined }}
+                    >
                       {new Date(event.date).toLocaleDateString()}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                    <LocationOn sx={{ mr: 1, color: "text.secondary" }} />
-                    <Typography variant="body2">{event.location}</Typography>
+                    <LocationOn
+                      sx={{
+                        mr: 1,
+                        color: "text.secondary",
+                        fontSize: isMobile ? 18 : 24,
+                      }}
+                    />
+                    <Typography
+                      variant="body2"
+                      sx={{ fontSize: isMobile ? "0.97rem" : undefined }}
+                    >
+                      {event.location}
+                    </Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <People sx={{ mr: 1, color: "text.secondary" }} />
-                    <Typography variant="body2">
+                    <People
+                      sx={{
+                        mr: 1,
+                        color: "text.secondary",
+                        fontSize: isMobile ? 18 : 24,
+                      }}
+                    />
+                    <Typography
+                      variant="body2"
+                      sx={{ fontSize: isMobile ? "0.97rem" : undefined }}
+                    >
                       {event.attendees?.[0]?.count || 0} attendees
                       {event.max_attendees && ` / ${event.max_attendees} max`}
                     </Typography>
                   </Box>
                 </CardContent>
-                <CardActions>
+                <CardActions sx={{ p: isMobile ? 1 : undefined }}>
                   <EventRSVP
                     eventId={event.id}
                     maxAttendees={event.max_attendees}

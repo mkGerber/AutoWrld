@@ -20,6 +20,8 @@ import {
   Paper,
   Container,
   Divider,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   Search,
@@ -57,6 +59,8 @@ const vehicleTypes = [
 
 export const Discover = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -181,6 +185,7 @@ export const Discover = () => {
           justifyContent: "center",
           alignItems: "center",
           minHeight: "60vh",
+          px: isMobile ? 2 : 0,
         }}
       >
         <CircularProgress color="secondary" />
@@ -189,20 +194,29 @@ export const Discover = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container
+      maxWidth="lg"
+      sx={{ py: isMobile ? 2 : 4, px: isMobile ? 0.5 : 2 }}
+    >
       {/* Header Section */}
-      <Box sx={{ mb: 4, textAlign: "center" }}>
+      <Box sx={{ mb: isMobile ? 2 : 4, textAlign: "center" }}>
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            mb: 2,
+            mb: isMobile ? 1 : 2,
           }}
         >
-          <DirectionsCar sx={{ fontSize: 40, color: "#d4af37", mr: 2 }} />
+          <DirectionsCar
+            sx={{
+              fontSize: isMobile ? 28 : 40,
+              color: "#d4af37",
+              mr: isMobile ? 1 : 2,
+            }}
+          />
           <Typography
-            variant="h3"
+            variant={isMobile ? "h5" : "h3"}
             sx={{
               color: "#d4af37",
               fontWeight: 700,
@@ -212,7 +226,11 @@ export const Discover = () => {
             Discover Builds
           </Typography>
         </Box>
-        <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 4 }}>
+        <Typography
+          variant={isMobile ? "body2" : "subtitle1"}
+          color="text.secondary"
+          sx={{ mb: isMobile ? 2 : 4 }}
+        >
           Explore amazing car builds from our community
         </Typography>
       </Box>
@@ -221,15 +239,15 @@ export const Discover = () => {
       <Paper
         elevation={0}
         sx={{
-          p: 3,
-          mb: 4,
+          p: isMobile ? 1.5 : 3,
+          mb: isMobile ? 2 : 4,
           backgroundColor: "rgba(30, 30, 40, 0.98)",
           borderRadius: 2,
           border: "1px solid rgba(212, 175, 55, 0.1)",
         }}
       >
-        <Grid container spacing={3} alignItems="center">
-          <Grid item xs={12} md={4}>
+        <Grid container spacing={isMobile ? 1.5 : 3} alignItems="center">
+          <Grid item xs={12} sm={6} md={4}>
             <TextField
               fullWidth
               placeholder="Search builds..."
@@ -244,8 +262,8 @@ export const Discover = () => {
               }}
               sx={{
                 "& .MuiOutlinedInput-root": {
-                  height: "56px",
-                  fontSize: "1.1rem",
+                  height: isMobile ? 44 : 56,
+                  fontSize: isMobile ? "1rem" : "1.1rem",
                   "& fieldset": {
                     borderColor: "rgba(212, 175, 55, 0.2)",
                   },
@@ -256,9 +274,11 @@ export const Discover = () => {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <FormControl fullWidth>
-              <InputLabel sx={{ fontSize: "1.15rem", top: "-6px" }}>
+              <InputLabel
+                sx={{ fontSize: isMobile ? "1rem" : "1.15rem", top: "-6px" }}
+              >
                 Make
               </InputLabel>
               <Select
@@ -266,21 +286,21 @@ export const Discover = () => {
                 onChange={(e) => setSelectedMake(e.target.value)}
                 label="Make"
                 sx={{
-                  minWidth: "140px",
-                  height: "56px",
-                  fontSize: "1.15rem",
+                  minWidth: isMobile ? "100px" : "140px",
+                  height: isMobile ? 44 : 56,
+                  fontSize: isMobile ? "1rem" : "1.15rem",
                   display: "flex",
                   alignItems: "center",
                   "& .MuiSelect-select": {
-                    minHeight: "56px",
-                    fontSize: "1.15rem",
+                    minHeight: isMobile ? 44 : 56,
+                    fontSize: isMobile ? "1rem" : "1.15rem",
                     display: "flex",
                     alignItems: "center",
-                    py: 1.5,
-                    px: 2,
+                    py: isMobile ? 1 : 1.5,
+                    px: isMobile ? 1 : 2,
                   },
                   "& .MuiSelect-icon": {
-                    fontSize: "2rem",
+                    fontSize: isMobile ? "1.5rem" : "2rem",
                   },
                   "& .MuiOutlinedInput-notchedOutline": {
                     borderColor: "rgba(212, 175, 55, 0.2)",
@@ -292,15 +312,19 @@ export const Discover = () => {
                 MenuProps={{
                   PaperProps: {
                     sx: {
-                      fontSize: "1.15rem",
-                      minWidth: "140px",
+                      fontSize: isMobile ? "1rem" : "1.15rem",
+                      minWidth: isMobile ? "100px" : "140px",
                     },
                   },
                 }}
               >
                 <MenuItem
                   value=""
-                  sx={{ fontSize: "1.15rem", minHeight: "48px", py: 1.5 }}
+                  sx={{
+                    fontSize: isMobile ? "1rem" : "1.15rem",
+                    minHeight: isMobile ? 40 : 48,
+                    py: isMobile ? 1 : 1.5,
+                  }}
                 >
                   All Makes
                 </MenuItem>
@@ -308,7 +332,11 @@ export const Discover = () => {
                   <MenuItem
                     key={make}
                     value={make}
-                    sx={{ fontSize: "1.15rem", minHeight: "48px", py: 1.5 }}
+                    sx={{
+                      fontSize: isMobile ? "1rem" : "1.15rem",
+                      minHeight: isMobile ? 40 : 48,
+                      py: isMobile ? 1 : 1.5,
+                    }}
                   >
                     {make}
                   </MenuItem>
@@ -316,9 +344,11 @@ export const Discover = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} sm={6} md={3}>
             <FormControl fullWidth>
-              <InputLabel sx={{ fontSize: "1.15rem", top: "-6px" }}>
+              <InputLabel
+                sx={{ fontSize: isMobile ? "1rem" : "1.15rem", top: "-6px" }}
+              >
                 Type
               </InputLabel>
               <Select
@@ -326,21 +356,21 @@ export const Discover = () => {
                 onChange={(e) => setSelectedType(e.target.value)}
                 label="Type"
                 sx={{
-                  minWidth: "140px",
-                  height: "56px",
-                  fontSize: "1.15rem",
+                  minWidth: isMobile ? "100px" : "140px",
+                  height: isMobile ? 44 : 56,
+                  fontSize: isMobile ? "1rem" : "1.15rem",
                   display: "flex",
                   alignItems: "center",
                   "& .MuiSelect-select": {
-                    minHeight: "56px",
-                    fontSize: "1.15rem",
+                    minHeight: isMobile ? 44 : 56,
+                    fontSize: isMobile ? "1rem" : "1.15rem",
                     display: "flex",
                     alignItems: "center",
-                    py: 1.5,
-                    px: 2,
+                    py: isMobile ? 1 : 1.5,
+                    px: isMobile ? 1 : 2,
                   },
                   "& .MuiSelect-icon": {
-                    fontSize: "2rem",
+                    fontSize: isMobile ? "1.5rem" : "2rem",
                   },
                   "& .MuiOutlinedInput-notchedOutline": {
                     borderColor: "rgba(212, 175, 55, 0.2)",
@@ -352,15 +382,19 @@ export const Discover = () => {
                 MenuProps={{
                   PaperProps: {
                     sx: {
-                      fontSize: "1.15rem",
-                      minWidth: "140px",
+                      fontSize: isMobile ? "1rem" : "1.15rem",
+                      minWidth: isMobile ? "100px" : "140px",
                     },
                   },
                 }}
               >
                 <MenuItem
                   value=""
-                  sx={{ fontSize: "1.15rem", minHeight: "48px", py: 1.5 }}
+                  sx={{
+                    fontSize: isMobile ? "1rem" : "1.15rem",
+                    minHeight: isMobile ? 40 : 48,
+                    py: isMobile ? 1 : 1.5,
+                  }}
                 >
                   All Types
                 </MenuItem>
@@ -368,7 +402,11 @@ export const Discover = () => {
                   <MenuItem
                     key={type}
                     value={type}
-                    sx={{ fontSize: "1.15rem", minHeight: "48px", py: 1.5 }}
+                    sx={{
+                      fontSize: isMobile ? "1rem" : "1.15rem",
+                      minHeight: isMobile ? 40 : 48,
+                      py: isMobile ? 1 : 1.5,
+                    }}
                   >
                     {type}
                   </MenuItem>
@@ -376,7 +414,7 @@ export const Discover = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} sm={6} md={2}>
             <Button
               fullWidth
               variant="contained"
@@ -384,8 +422,8 @@ export const Discover = () => {
               onClick={handleSearch}
               startIcon={<FilterList />}
               sx={{
-                height: "56px",
-                fontSize: "1.1rem",
+                height: isMobile ? 44 : 56,
+                fontSize: isMobile ? "1rem" : "1.1rem",
                 backgroundColor: "#d4af37",
                 "&:hover": {
                   backgroundColor: "#e4bf47",
@@ -401,8 +439,8 @@ export const Discover = () => {
               variant="outlined"
               onClick={handleResetFilters}
               sx={{
-                height: "56px",
-                fontSize: "1.1rem",
+                height: isMobile ? 44 : 56,
+                fontSize: isMobile ? "1rem" : "1.1rem",
                 borderColor: "rgba(212, 175, 55, 0.2)",
                 color: "#d4af37",
                 "&:hover": {
@@ -419,16 +457,20 @@ export const Discover = () => {
       {/* Sort Options */}
       <Box
         sx={{
-          mb: 4,
-          display: "flex",
+          mb: isMobile ? 2 : 4,
+          display: isMobile ? "block" : "flex",
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: isMobile ? "flex-start" : "center",
         }}
       >
-        <Typography variant="h6" color="text.secondary">
+        <Typography
+          variant={isMobile ? "body1" : "h6"}
+          color="text.secondary"
+          sx={{ mb: isMobile ? 1 : 0 }}
+        >
           {vehicles.length} builds found
         </Typography>
-        <FormControl sx={{ minWidth: 200 }}>
+        <FormControl sx={{ minWidth: isMobile ? 120 : 200 }}>
           <InputLabel>Sort By</InputLabel>
           <Select
             value={sortBy}
@@ -440,8 +482,8 @@ export const Discover = () => {
               </InputAdornment>
             }
             sx={{
-              height: "56px",
-              fontSize: "1.1rem",
+              height: isMobile ? 44 : 56,
+              fontSize: isMobile ? "1rem" : "1.1rem",
               "& .MuiOutlinedInput-notchedOutline": {
                 borderColor: "rgba(212, 175, 55, 0.2)",
               },
@@ -457,7 +499,7 @@ export const Discover = () => {
       </Box>
 
       {/* Vehicle Grid */}
-      <Grid container spacing={3}>
+      <Grid container spacing={isMobile ? 2 : 3}>
         {vehicles.map((vehicle) => (
           <Grid item xs={12} sm={6} md={4} key={vehicle.id}>
             <Card
@@ -473,11 +515,13 @@ export const Discover = () => {
                   boxShadow: "0 8px 16px rgba(0, 0, 0, 0.2)",
                   border: "1px solid rgba(212, 175, 55, 0.3)",
                 },
+                width: "100%",
+                minHeight: isMobile ? 320 : 380,
               }}
             >
               <CardMedia
                 component="img"
-                height="240"
+                height={isMobile ? "160" : "240"}
                 image={vehicle.image}
                 alt={vehicle.name}
                 sx={{
@@ -485,12 +529,12 @@ export const Discover = () => {
                   borderBottom: "1px solid rgba(212, 175, 55, 0.1)",
                 }}
               />
-              <CardContent>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
                 <Box
                   sx={{
                     display: "flex",
                     alignItems: "center",
-                    mb: 2,
+                    mb: isMobile ? 1 : 2,
                   }}
                 >
                   <Avatar
@@ -499,14 +543,20 @@ export const Discover = () => {
                     sx={{
                       mr: 1,
                       border: "2px solid rgba(212, 175, 55, 0.3)",
+                      width: isMobile ? 32 : 40,
+                      height: isMobile ? 32 : 40,
                     }}
                   />
-                  <Typography variant="subtitle2" color="text.secondary">
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    sx={{ fontSize: isMobile ? "0.95rem" : undefined }}
+                  >
                     {vehicle.owner}
                   </Typography>
                 </Box>
                 <Typography
-                  variant="h6"
+                  variant={isMobile ? "body1" : "h6"}
                   gutterBottom
                   sx={{
                     fontWeight: 600,
@@ -519,11 +569,17 @@ export const Discover = () => {
                   variant="body2"
                   color="text.secondary"
                   gutterBottom
-                  sx={{ mb: 2 }}
+                  sx={{ mb: isMobile ? 1 : 2 }}
                 >
                   {vehicle.year} {vehicle.make} {vehicle.model}
                 </Typography>
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: isMobile ? 0.5 : 1,
+                  }}
+                >
                   {(vehicle.modifications || []).map(
                     (mod: string, index: number) => (
                       <Chip
@@ -534,6 +590,8 @@ export const Discover = () => {
                           backgroundColor: "rgba(212, 175, 55, 0.1)",
                           color: "#d4af37",
                           border: "1px solid rgba(212, 175, 55, 0.2)",
+                          fontSize: isMobile ? "0.85rem" : undefined,
+                          height: isMobile ? 22 : 24,
                           "&:hover": {
                             backgroundColor: "rgba(212, 175, 55, 0.2)",
                           },
@@ -543,7 +601,10 @@ export const Discover = () => {
                   )}
                 </Box>
                 <Divider
-                  sx={{ my: 2, borderColor: "rgba(212, 175, 55, 0.1)" }}
+                  sx={{
+                    my: isMobile ? 1 : 2,
+                    borderColor: "rgba(212, 175, 55, 0.1)",
+                  }}
                 />
                 <Box
                   sx={{
@@ -552,36 +613,43 @@ export const Discover = () => {
                     alignItems: "center",
                   }}
                 >
-                  <Box sx={{ display: "flex", gap: 1 }}>
+                  <Box sx={{ display: "flex", gap: isMobile ? 0.5 : 1 }}>
                     <IconButton
-                      size="small"
+                      size={isMobile ? "small" : "medium"}
                       sx={{
                         color: "text.secondary",
                         "&:hover": { color: "#d4af37" },
+                        p: isMobile ? 0.75 : 1,
                       }}
                     >
                       <Favorite />
                     </IconButton>
                     <IconButton
-                      size="small"
+                      size={isMobile ? "small" : "medium"}
                       sx={{
                         color: "text.secondary",
                         "&:hover": { color: "#d4af37" },
+                        p: isMobile ? 0.75 : 1,
                       }}
                     >
                       <Comment />
                     </IconButton>
                     <IconButton
-                      size="small"
+                      size={isMobile ? "small" : "medium"}
                       sx={{
                         color: "text.secondary",
                         "&:hover": { color: "#d4af37" },
+                        p: isMobile ? 0.75 : 1,
                       }}
                     >
                       <Share />
                     </IconButton>
                   </Box>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontSize: isMobile ? "0.8rem" : undefined }}
+                  >
                     {new Date(vehicle.created_at).toLocaleDateString()}
                   </Typography>
                 </Box>

@@ -45,6 +45,7 @@ import {
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../services/supabase/client";
+import VehicleComments from "../components/vehicle/VehicleComments";
 
 const statusColors = {
   "In Progress": "#ff9800",
@@ -89,6 +90,16 @@ export const VehicleDetails = () => {
     null
   );
   const [savingBuildProgress, setSavingBuildProgress] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
+  const [timelineItems, setTimelineItems] = useState<any[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState(true);
+  const [addTimelineOpen, setAddTimelineOpen] = useState(false);
+  const [newTimeline, setNewTimeline] = useState({
+    title: "",
+    description: "",
+    date: "",
+  });
+  const [addingTimeline, setAddingTimeline] = useState(false);
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -133,6 +144,20 @@ export const VehicleDetails = () => {
       setBuildProgressValue(vehicle.buildProgress);
     }
   }, [vehicle]);
+
+  useEffect(() => {
+    const fetchTimeline = async () => {
+      setTimelineLoading(true);
+      const { data, error } = await supabase
+        .from("vehicle_timeline")
+        .select("*")
+        .eq("vehicle_id", id)
+        .order("date", { ascending: false });
+      if (!error) setTimelineItems(data || []);
+      setTimelineLoading(false);
+    };
+    if (id) fetchTimeline();
+  }, [id]);
 
   if (loading) return <div>Loading...</div>;
   if (!vehicle) return null;
@@ -249,6 +274,21 @@ export const VehicleDetails = () => {
       setVehicle({ ...vehicle, buildProgress: buildProgressValue });
     }
     setSavingBuildProgress(false);
+  };
+
+  const handleAddTimeline = async () => {
+    setAddingTimeline(true);
+    const { error, data } = await supabase
+      .from("vehicle_timeline")
+      .insert([{ ...newTimeline, vehicle_id: id }])
+      .select()
+      .single();
+    if (!error && data) {
+      setTimelineItems([data, ...timelineItems]);
+      setAddTimelineOpen(false);
+      setNewTimeline({ title: "", description: "", date: "" });
+    }
+    setAddingTimeline(false);
   };
 
   return (
@@ -504,7 +544,7 @@ export const VehicleDetails = () => {
               {selectedTab === 1 && (
                 <Box>
                   <Grid container spacing={2}>
-                    <Grid item xs={6}>
+                    <Grid component="div" xs={6}>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
@@ -528,7 +568,7 @@ export const VehicleDetails = () => {
                         </IconButton>
                       </Box>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid component="div" xs={6}>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
@@ -552,7 +592,7 @@ export const VehicleDetails = () => {
                         </IconButton>
                       </Box>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid component="div" xs={6}>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
@@ -576,7 +616,7 @@ export const VehicleDetails = () => {
                         </IconButton>
                       </Box>
                     </Grid>
-                    <Grid item xs={6}>
+                    <Grid component="div" xs={6}>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
@@ -610,55 +650,40 @@ export const VehicleDetails = () => {
                 <Box>
                   <Typography variant="h6" gutterBottom>
                     Build Timeline
+                    <Button
+                      size="small"
+                      sx={{ ml: 2, color: "#d4af37" }}
+                      onClick={() => setAddTimelineOpen(true)}
+                    >
+                      Add
+                    </Button>
                   </Typography>
-                  <Timeline>
-                    <TimelineItem>
-                      <TimelineSeparator>
-                        <TimelineDot sx={{ bgcolor: "#d4af37" }} />
-                        <TimelineConnector />
-                      </TimelineSeparator>
-                      <TimelineContent>
-                        <Typography variant="h6">Engine Swap</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Completed 13B-REW engine swap with twin turbo setup
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          March 15, 2023
-                        </Typography>
-                      </TimelineContent>
-                    </TimelineItem>
-                    <TimelineItem>
-                      <TimelineSeparator>
-                        <TimelineDot sx={{ bgcolor: "#d4af37" }} />
-                        <TimelineConnector />
-                      </TimelineSeparator>
-                      <TimelineContent>
-                        <Typography variant="h6">Suspension Upgrade</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Installed coilover suspension and upgraded sway bars
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          February 28, 2023
-                        </Typography>
-                      </TimelineContent>
-                    </TimelineItem>
-                    <TimelineItem>
-                      <TimelineSeparator>
-                        <TimelineDot sx={{ bgcolor: "#d4af37" }} />
-                      </TimelineSeparator>
-                      <TimelineContent>
-                        <Typography variant="h6">
-                          Widebody Installation
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Completed widebody kit installation and paint
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          January 15, 2023
-                        </Typography>
-                      </TimelineContent>
-                    </TimelineItem>
-                  </Timeline>
+                  {timelineLoading ? (
+                    <LinearProgress />
+                  ) : (
+                    <Timeline>
+                      {timelineItems.map((item) => (
+                        <TimelineItem key={item.id}>
+                          <TimelineSeparator>
+                            <TimelineDot sx={{ bgcolor: "#d4af37" }} />
+                            <TimelineConnector />
+                          </TimelineSeparator>
+                          <TimelineContent>
+                            <Typography variant="h6">{item.title}</Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {item.description}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {item.date}
+                            </Typography>
+                          </TimelineContent>
+                        </TimelineItem>
+                      ))}
+                    </Timeline>
+                  )}
                 </Box>
               )}
 
@@ -666,7 +691,7 @@ export const VehicleDetails = () => {
                 <Box>
                   <Grid container spacing={2}>
                     {reversedImages.map((image: string, index: number) => (
-                      <Grid item xs={12} sm={6} md={4} key={index}>
+                      <Grid component="div" xs={12} sm={6} md={4} key={index}>
                         <Paper
                           sx={{
                             height: 200,
@@ -703,7 +728,7 @@ export const VehicleDetails = () => {
               245 Likes
             </Button>
             <Button startIcon={<Comment />} sx={{ color: "text.secondary" }}>
-              32 Comments
+              {commentCount} Comment{commentCount === 1 ? "" : "s"}
             </Button>
             <Button startIcon={<Share />} sx={{ color: "text.secondary" }}>
               Share
@@ -769,6 +794,56 @@ export const VehicleDetails = () => {
           </Button>
           <Button onClick={handleSave} sx={{ color: "#d4af37" }}>
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Comments Section */}
+      <VehicleComments vehicleId={vehicle.id} />
+
+      {/* Add Timeline Dialog */}
+      <Dialog open={addTimelineOpen} onClose={() => setAddTimelineOpen(false)}>
+        <DialogTitle>Add Timeline Item</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Title"
+            fullWidth
+            value={newTimeline.title}
+            onChange={(e) =>
+              setNewTimeline({ ...newTimeline, title: e.target.value })
+            }
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Description"
+            fullWidth
+            multiline
+            rows={3}
+            value={newTimeline.description}
+            onChange={(e) =>
+              setNewTimeline({ ...newTimeline, description: e.target.value })
+            }
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Date"
+            type="date"
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+            value={newTimeline.date}
+            onChange={(e) =>
+              setNewTimeline({ ...newTimeline, date: e.target.value })
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddTimelineOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleAddTimeline}
+            disabled={addingTimeline}
+            sx={{ color: "#d4af37" }}
+          >
+            {addingTimeline ? "Adding..." : "Add"}
           </Button>
         </DialogActions>
       </Dialog>
