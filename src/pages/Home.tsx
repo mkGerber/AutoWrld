@@ -31,8 +31,6 @@ import {
 } from "@mui/icons-material";
 // @ts-ignore
 import highlightImage from "../assets/Home/highlight.JPG";
-import { useState, useEffect } from "react";
-import { supabase } from "../services/supabase/client";
 
 const featuredVehicles = [
   {
