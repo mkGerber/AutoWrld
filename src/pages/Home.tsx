@@ -1,3 +1,6 @@
+import { useAuth } from "../context/AuthContext";
+import { useEffect, useState } from "react";
+import { supabase } from "../services/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
   Typography,
@@ -73,10 +76,30 @@ const trendingTopics = [
 ];
 
 export const Home = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [profileChecked, setProfileChecked] = useState(false);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [featuredVehicles, setFeaturedVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("username, bio")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!data || !data.username || !data.bio) {
+          navigate("/setup-profile", { replace: true });
+        } else {
+          setProfileChecked(true);
+        }
+      }
+    };
+    checkProfile();
+  }, [user, navigate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -191,6 +214,11 @@ export const Home = () => {
 
     fetchData();
   }, []);
+
+  if (!profileChecked) {
+    // Prevents any data fetching or rendering until profile is confirmed
+    return null; // or a loading spinner
+  }
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
