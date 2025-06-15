@@ -17,6 +17,9 @@ import ResetPassword from "./pages/ResetPassword";
 import SetupProfile from "./pages/SetupProfile";
 import { EventDetails } from "./pages/EventDetails";
 import { Discover } from "./pages/Discover";
+import { Friends } from "./pages/Friends";
+import { ChatRoom } from "./components/chat/ChatRoom";
+import { Chats } from "./pages/Chats";
 
 function App() {
   return (
@@ -41,11 +44,14 @@ function App() {
                         <Route path="/garage" element={<Garage />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/discover" element={<Discover />} />
+                        <Route path="/friends" element={<Friends />} />
+                        <Route path="/chats" element={<Chats />} />
                         <Route
                           path="/vehicle/:id"
                           element={<VehicleDetails />}
                         />
                         <Route path="/events/:id" element={<EventDetails />} />
+                        <Route path="/chat/:id" element={<ChatRoom />} />
                       </Routes>
                     </ProtectedRoute>
                   }
