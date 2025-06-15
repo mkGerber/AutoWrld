@@ -162,7 +162,7 @@ export const Garage = () => {
       .order("created_at", { ascending: false });
     setVehicles(data || []);
     setSaving(false);
-    navigate("/garage");
+    window.location.replace("/garage");
   };
 
   const handleDeleteVehicle = (vehicle: any) => {
