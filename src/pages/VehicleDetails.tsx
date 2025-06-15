@@ -20,6 +20,8 @@ import {
   DialogActions,
   Autocomplete,
   Slider,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   Timeline,
@@ -100,6 +102,8 @@ export const VehicleDetails = () => {
     date: "",
   });
   const [addingTimeline, setAddingTimeline] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -292,26 +296,42 @@ export const VehicleDetails = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        px: isMobile ? 0.5 : 0,
+      }}
+    >
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: isMobile ? 2 : 4 }}>
         <Button
           startIcon={<ArrowBack />}
           onClick={() => navigate("/garage")}
-          sx={{ mb: 2, color: "#d4af37" }}
+          sx={{
+            mb: 2,
+            color: "#d4af37",
+            fontSize: isMobile ? "1rem" : "1.1rem",
+          }}
         >
           Back to Garage
         </Button>
         <Box
           sx={{
-            display: "flex",
+            display: isMobile ? "block" : "flex",
             justifyContent: "space-between",
-            alignItems: "flex-start",
+            alignItems: isMobile ? "flex-start" : "flex-start",
+            gap: isMobile ? 2 : 0,
           }}
         >
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="h4" component="h1" sx={{ color: "#d4af37" }}>
+              <Typography
+                variant={isMobile ? "h5" : "h4"}
+                component="h1"
+                sx={{ color: "#d4af37" }}
+              >
                 {vehicle.name}
               </Typography>
               <IconButton
@@ -323,8 +343,18 @@ export const VehicleDetails = () => {
               </IconButton>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-              <Avatar src={owner.avatar_url} sx={{ mr: 1 }} />
-              <Typography variant="subtitle1" color="text.secondary">
+              <Avatar
+                src={owner.avatar_url}
+                sx={{
+                  mr: 1,
+                  width: isMobile ? 32 : 40,
+                  height: isMobile ? 32 : 40,
+                }}
+              />
+              <Typography
+                variant={isMobile ? "body2" : "subtitle1"}
+                color="text.secondary"
+              >
                 {owner.name}
               </Typography>
             </Box>
@@ -335,36 +365,59 @@ export const VehicleDetails = () => {
               backgroundColor: statusColor,
               color: "white",
               fontWeight: "bold",
+              fontSize: isMobile ? "0.95rem" : undefined,
+              mt: isMobile ? 2 : 0,
             }}
           />
         </Box>
       </Box>
 
       {/* Main Content Split */}
-      <Box sx={{ display: "flex", gap: 4, flex: 1 }}>
+      <Box
+        sx={{
+          display: isMobile ? "block" : "flex",
+          gap: isMobile ? 0 : 4,
+          flex: 1,
+        }}
+      >
         {/* Left Side - Image Gallery */}
         <Box
           sx={{
-            width: "45%",
-            position: "sticky",
+            width: isMobile ? "100%" : "45%",
+            position: isMobile ? "static" : "sticky",
             top: 24,
-            height: "fit-content",
+            height: "auto",
+            mb: isMobile ? 2 : 0,
           }}
         >
           <Paper
             sx={{
               position: "relative",
-              height: "600px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: isMobile ? 220 : 320,
+              height: "auto",
               borderRadius: 2,
               overflow: "hidden",
               mb: 2,
+              background: "#181c2f",
             }}
           >
             <CardMedia
               component="img"
               image={reversedImages[selectedImage]}
               alt={vehicle.name}
-              sx={{ height: "100%", objectFit: "cover" }}
+              sx={{
+                maxHeight: "60vh",
+                maxWidth: "100%",
+                width: "auto",
+                height: "auto",
+                objectFit: "contain",
+                background: "#181c2f",
+                margin: "0 auto",
+                display: "block",
+              }}
             />
           </Paper>
           <Box
@@ -379,27 +432,35 @@ export const VehicleDetails = () => {
                 backgroundColor: "rgba(255, 255, 255, 0.3)",
                 borderRadius: "2px",
               },
+              mb: isMobile ? 2 : 0,
             }}
           >
             {reversedImages.map((image, index) => (
               <Box
                 key={index}
                 sx={{
-                  width: 100,
-                  height: 100,
+                  width: isMobile ? 60 : 100,
+                  height: isMobile ? 60 : 100,
                   flexShrink: 0,
                   cursor: "pointer",
                   border:
                     selectedImage === index ? "2px solid #d4af37" : "none",
                   borderRadius: 1,
                   overflow: "hidden",
+                  background: "#181c2f",
                 }}
                 onClick={() => setSelectedImage(index)}
               >
                 <img
                   src={image}
                   alt={`${vehicle.name} thumbnail ${index + 1}`}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    background: "#181c2f",
+                    display: "block",
+                  }}
                 />
               </Box>
             ))}
@@ -407,10 +468,12 @@ export const VehicleDetails = () => {
         </Box>
 
         {/* Right Side - Information */}
-        <Box sx={{ width: "55%" }}>
+        <Box sx={{ width: isMobile ? "100%" : "55%" }}>
           {/* Build Progress */}
-          <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper
+            sx={{ p: isMobile ? 2 : 3, mb: isMobile ? 2 : 3, borderRadius: 2 }}
+          >
+            <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
               Build Progress
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -445,6 +508,8 @@ export const VehicleDetails = () => {
                   backgroundColor: "#d4af37",
                   color: "#0a0f2c",
                   "&:hover": { backgroundColor: "#e4bf47" },
+                  fontSize: isMobile ? "0.95rem" : undefined,
+                  py: isMobile ? 1 : undefined,
                 }}
               >
                 {savingBuildProgress ? "Saving..." : "Save"}
@@ -457,11 +522,15 @@ export const VehicleDetails = () => {
             <Tabs
               value={selectedTab}
               onChange={handleTabChange}
+              variant={isMobile ? "scrollable" : "standard"}
+              scrollButtons={isMobile ? "auto" : false}
               sx={{
                 borderBottom: 1,
                 borderColor: "divider",
                 "& .MuiTab-root": {
                   color: "text.secondary",
+                  fontSize: isMobile ? "0.95rem" : undefined,
+                  minWidth: isMobile ? 90 : undefined,
                   "&.Mui-selected": {
                     color: "#d4af37",
                   },
@@ -478,7 +547,7 @@ export const VehicleDetails = () => {
             </Tabs>
 
             {/* Tab Panels */}
-            <Box sx={{ p: 3 }}>
+            <Box sx={{ p: isMobile ? 1.5 : 3 }}>
               {selectedTab === 0 && (
                 <Box>
                   <Box
@@ -489,7 +558,11 @@ export const VehicleDetails = () => {
                       mb: 2,
                     }}
                   >
-                    <Typography variant="body1" paragraph sx={{ flex: 1 }}>
+                    <Typography
+                      variant={isMobile ? "body2" : "body1"}
+                      paragraph
+                      sx={{ flex: 1 }}
+                    >
                       {vehicle.description}
                     </Typography>
                     <IconButton
@@ -510,7 +583,10 @@ export const VehicleDetails = () => {
                       mb: 2,
                     }}
                   >
-                    <Typography variant="h6" sx={{ flex: 1 }}>
+                    <Typography
+                      variant={isMobile ? "body1" : "h6"}
+                      sx={{ flex: 1 }}
+                    >
                       Modifications
                     </Typography>
                     <IconButton
@@ -524,7 +600,13 @@ export const VehicleDetails = () => {
                       <Edit />
                     </IconButton>
                   </Box>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: isMobile ? 0.5 : 1,
+                    }}
+                  >
                     {(vehicle.modifications || []).map(
                       (mod: string, index: number) => (
                         <Chip
@@ -533,6 +615,8 @@ export const VehicleDetails = () => {
                           sx={{
                             backgroundColor: "rgba(212, 175, 55, 0.1)",
                             color: "#d4af37",
+                            fontSize: isMobile ? "0.85rem" : undefined,
+                            height: isMobile ? 22 : 24,
                           }}
                         />
                       )
@@ -543,8 +627,10 @@ export const VehicleDetails = () => {
 
               {selectedTab === 1 && (
                 <Box>
-                  <Grid container spacing={2}>
-                    <Grid component="div" xs={6}>
+                  {isMobile ? (
+                    <Box
+                      sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                    >
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
@@ -567,8 +653,6 @@ export const VehicleDetails = () => {
                           <Edit />
                         </IconButton>
                       </Box>
-                    </Grid>
-                    <Grid component="div" xs={6}>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
@@ -591,8 +675,6 @@ export const VehicleDetails = () => {
                           <Edit />
                         </IconButton>
                       </Box>
-                    </Grid>
-                    <Grid component="div" xs={6}>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
@@ -615,8 +697,6 @@ export const VehicleDetails = () => {
                           <Edit />
                         </IconButton>
                       </Box>
-                    </Grid>
-                    <Grid component="div" xs={6}>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
@@ -641,18 +721,123 @@ export const VehicleDetails = () => {
                           <Edit />
                         </IconButton>
                       </Box>
+                    </Box>
+                  ) : (
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="subtitle2"
+                              color="text.secondary"
+                            >
+                              Make
+                            </Typography>
+                            <Typography variant="body1">
+                              {vehicle.make}
+                            </Typography>
+                          </Box>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEdit("make", vehicle.make)}
+                            sx={{ color: "#d4af37" }}
+                          >
+                            <Edit />
+                          </IconButton>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="subtitle2"
+                              color="text.secondary"
+                            >
+                              Model
+                            </Typography>
+                            <Typography variant="body1">
+                              {vehicle.model}
+                            </Typography>
+                          </Box>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEdit("model", vehicle.model)}
+                            sx={{ color: "#d4af37" }}
+                          >
+                            <Edit />
+                          </IconButton>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="subtitle2"
+                              color="text.secondary"
+                            >
+                              Year
+                            </Typography>
+                            <Typography variant="body1">
+                              {vehicle.year}
+                            </Typography>
+                          </Box>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEdit("year", vehicle.year)}
+                            sx={{ color: "#d4af37" }}
+                          >
+                            <Edit />
+                          </IconButton>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="subtitle2"
+                              color="text.secondary"
+                            >
+                              Horsepower
+                            </Typography>
+                            <Typography variant="body1">
+                              {vehicle.horsepower} hp
+                            </Typography>
+                          </Box>
+                          <IconButton
+                            size="small"
+                            onClick={() =>
+                              handleEdit("horsepower", vehicle.horsepower)
+                            }
+                            sx={{ color: "#d4af37" }}
+                          >
+                            <Edit />
+                          </IconButton>
+                        </Box>
+                      </Grid>
                     </Grid>
-                  </Grid>
+                  )}
                 </Box>
               )}
 
               {selectedTab === 2 && (
                 <Box>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
                     Build Timeline
                     <Button
                       size="small"
-                      sx={{ ml: 2, color: "#d4af37" }}
+                      sx={{
+                        ml: 2,
+                        color: "#d4af37",
+                        fontSize: isMobile ? "0.95rem" : undefined,
+                      }}
                       onClick={() => setAddTimelineOpen(true)}
                     >
                       Add
@@ -661,7 +846,7 @@ export const VehicleDetails = () => {
                   {timelineLoading ? (
                     <LinearProgress />
                   ) : (
-                    <Timeline>
+                    <Timeline sx={{ pl: isMobile ? 0 : 2 }}>
                       {timelineItems.map((item) => (
                         <TimelineItem key={item.id}>
                           <TimelineSeparator>
@@ -669,7 +854,9 @@ export const VehicleDetails = () => {
                             <TimelineConnector />
                           </TimelineSeparator>
                           <TimelineContent>
-                            <Typography variant="h6">{item.title}</Typography>
+                            <Typography variant={isMobile ? "body2" : "h6"}>
+                              {item.title}
+                            </Typography>
                             <Typography variant="body2" color="text.secondary">
                               {item.description}
                             </Typography>
@@ -689,18 +876,31 @@ export const VehicleDetails = () => {
 
               {selectedTab === 3 && (
                 <Box>
-                  <Grid container spacing={2}>
-                    {reversedImages.map((image: string, index: number) => (
-                      <Grid component="div" xs={12} sm={6} md={4} key={index}>
+                  {isMobile ? (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        gap: 1,
+                        overflowX: "auto",
+                        pb: 1,
+                      }}
+                    >
+                      {reversedImages.map((image: string, index: number) => (
                         <Paper
+                          key={index}
                           sx={{
-                            height: 200,
+                            minWidth: 180,
+                            maxWidth: 220,
+                            height: 120,
                             overflow: "hidden",
                             cursor: "pointer",
+                            flexShrink: 0,
                             "&:hover": {
                               transform: "scale(1.02)",
                               transition: "transform 0.2s",
                             },
+                            background: "#181c2f",
                           }}
                           onClick={() => setSelectedImage(index)}
                         >
@@ -710,27 +910,86 @@ export const VehicleDetails = () => {
                             style={{
                               width: "100%",
                               height: "100%",
-                              objectFit: "cover",
+                              objectFit: "contain",
+                              background: "#181c2f",
+                              display: "block",
                             }}
                           />
                         </Paper>
-                      </Grid>
-                    ))}
-                  </Grid>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Grid container spacing={2}>
+                      {reversedImages.map((image: string, index: number) => (
+                        <Grid item xs={12} sm={6} md={4} key={index}>
+                          <Paper
+                            sx={{
+                              height: 200,
+                              overflow: "hidden",
+                              cursor: "pointer",
+                              "&:hover": {
+                                transform: "scale(1.02)",
+                                transition: "transform 0.2s",
+                              },
+                              background: "#181c2f",
+                            }}
+                            onClick={() => setSelectedImage(index)}
+                          >
+                            <img
+                              src={image}
+                              alt={`${vehicle.name} gallery ${index + 1}`}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "contain",
+                                background: "#181c2f",
+                                display: "block",
+                              }}
+                            />
+                          </Paper>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  )}
                 </Box>
               )}
             </Box>
           </Paper>
 
           {/* Social Actions */}
-          <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
-            <Button startIcon={<Favorite />} sx={{ color: "text.secondary" }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: isMobile ? 1 : 2,
+              mt: 3,
+              flexWrap: isMobile ? "wrap" : "nowrap",
+            }}
+          >
+            <Button
+              startIcon={<Favorite />}
+              sx={{
+                color: "text.secondary",
+                fontSize: isMobile ? "0.95rem" : undefined,
+              }}
+            >
               245 Likes
             </Button>
-            <Button startIcon={<Comment />} sx={{ color: "text.secondary" }}>
+            <Button
+              startIcon={<Comment />}
+              sx={{
+                color: "text.secondary",
+                fontSize: isMobile ? "0.95rem" : undefined,
+              }}
+            >
               {commentCount} Comment{commentCount === 1 ? "" : "s"}
             </Button>
-            <Button startIcon={<Share />} sx={{ color: "text.secondary" }}>
+            <Button
+              startIcon={<Share />}
+              sx={{
+                color: "text.secondary",
+                fontSize: isMobile ? "0.95rem" : undefined,
+              }}
+            >
               Share
             </Button>
           </Box>
