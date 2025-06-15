@@ -34,28 +34,8 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../services/supabase/client";
-
-const makes = [
-  "Toyota",
-  "Honda",
-  "Nissan",
-  "Mazda",
-  "Subaru",
-  "BMW",
-  "Mercedes-Benz",
-  "Audi",
-  "Porsche",
-  "Ferrari",
-  "Other",
-];
-
-const vehicleTypes = [
-  "Daily Driver",
-  "Project Car",
-  "Track Car",
-  "Show Car",
-  "Weekend Cruiser",
-];
+import { makes } from "../constants/makes"; // "constants" folder created that can contain constants (like makes) so we don't have to repeat them in multiple files
+import { vehicleTypes } from "../constants/vehicleTypes"; // accessing vehicle types from constants... (same is done in AddVehicleForm.tsx)
 
 export const Discover = () => {
   const navigate = useNavigate();

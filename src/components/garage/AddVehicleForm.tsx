@@ -20,34 +20,14 @@ import {
   Close as CloseIcon,
   CloudUpload,
 } from "@mui/icons-material";
+import { vehicleTypes } from "../../constants/vehicleTypes";  // accessing vehicle types from constants... (same is done in Discover.tsx)
+import { makes } from "../../constants/makes"; // "constants" folder created that can contain constants (like makes) so we don't have to repeat them in multiple files
 
 interface AddVehicleFormProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (vehicleData: any) => void;
 }
-
-const vehicleTypes = [
-  "Daily Driver",
-  "Project Car",
-  "Track Car",
-  "Show Car",
-  "Weekend Cruiser",
-];
-
-const makes = [
-  "Toyota",
-  "Honda",
-  "Nissan",
-  "Mazda",
-  "Subaru",
-  "BMW",
-  "Mercedes-Benz",
-  "Audi",
-  "Porsche",
-  "Ferrari",
-  "Other",
-];
 
 export const AddVehicleForm = ({
   open,
