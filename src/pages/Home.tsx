@@ -265,10 +265,13 @@ export const Home = () => {
                   display: "flex",
                   flexDirection: "column",
                   transition: "transform 0.2s",
+                  cursor: "pointer",
                   "&:hover": {
                     transform: "translateY(-4px)",
+                    boxShadow: 6,
                   },
                 }}
+                onClick={() => navigate(`/vehicle/${vehicle.id}`)}
               >
                 <CardMedia
                   component="img"
