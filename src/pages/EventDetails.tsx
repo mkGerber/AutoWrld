@@ -17,6 +17,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   CalendarMonth,
@@ -69,6 +71,8 @@ export const EventDetails = () => {
   const [editValue, setEditValue] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [attendees, setAttendees] = useState<any[]>([]);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -181,26 +185,42 @@ export const EventDetails = () => {
     user?.id && event.created_by?.id ? user.id === event.created_by.id : false;
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        px: isMobile ? 0.5 : 0,
+      }}
+    >
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: isMobile ? 2 : 4 }}>
         <Button
           startIcon={<ArrowBack />}
           onClick={() => navigate("/events")}
-          sx={{ mb: 2, color: "#d4af37" }}
+          sx={{
+            mb: 2,
+            color: "#d4af37",
+            fontSize: isMobile ? "1rem" : "1.1rem",
+          }}
         >
           Back to Events
         </Button>
         <Box
           sx={{
-            display: "flex",
+            display: isMobile ? "block" : "flex",
             justifyContent: "space-between",
-            alignItems: "flex-start",
+            alignItems: isMobile ? "flex-start" : "flex-start",
+            gap: isMobile ? 2 : 0,
           }}
         >
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="h4" component="h1" sx={{ color: "#d4af37" }}>
+              <Typography
+                variant={isMobile ? "h5" : "h4"}
+                component="h1"
+                sx={{ color: "#d4af37" }}
+              >
                 {event.title}
               </Typography>
               {isCreator && (
@@ -214,8 +234,18 @@ export const EventDetails = () => {
               )}
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-              <Avatar src={event.created_by?.avatar_url} sx={{ mr: 1 }} />
-              <Typography variant="subtitle1" color="text.secondary">
+              <Avatar
+                src={event.created_by?.avatar_url}
+                sx={{
+                  mr: 1,
+                  width: isMobile ? 32 : 40,
+                  height: isMobile ? 32 : 40,
+                }}
+              />
+              <Typography
+                variant={isMobile ? "body2" : "subtitle1"}
+                color="text.secondary"
+              >
                 {event.created_by?.name || "Unknown Creator"}
               </Typography>
             </Box>
@@ -226,32 +256,42 @@ export const EventDetails = () => {
               backgroundColor: "#d4af37",
               color: "white",
               fontWeight: "bold",
+              fontSize: isMobile ? "0.95rem" : undefined,
+              mt: isMobile ? 2 : 0,
             }}
           />
         </Box>
       </Box>
 
       {/* Main Content Split */}
-      <Box sx={{ display: "flex", gap: 4, flex: 1 }}>
+      <Box
+        sx={{
+          display: isMobile ? "block" : "flex",
+          gap: isMobile ? 0 : 4,
+          flex: 1,
+        }}
+      >
         {/* Left Side - Event Image */}
         <Box
           sx={{
-            width: "45%",
-            position: "sticky",
+            width: isMobile ? "100%" : "45%",
+            position: isMobile ? "static" : "sticky",
             top: 24,
-            height: "fit-content",
+            height: "auto",
+            mb: isMobile ? 2 : 0,
           }}
         >
           <Paper
             sx={{
               position: "relative",
-              height: "600px",
-              borderRadius: 2,
-              overflow: "hidden",
-              mb: 2,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              minHeight: isMobile ? 220 : 320,
+              height: "auto",
+              borderRadius: 2,
+              overflow: "hidden",
+              mb: 2,
               backgroundColor: "rgba(0, 0, 0, 0.1)",
             }}
           >
@@ -263,9 +303,14 @@ export const EventDetails = () => {
               }
               alt={event.title}
               sx={{
-                width: "100%",
-                height: "100%",
+                maxHeight: "60vh",
+                maxWidth: "100%",
+                width: "auto",
+                height: "auto",
                 objectFit: "contain",
+                background: "#181c2f",
+                margin: "0 auto",
+                display: "block",
                 p: 2,
               }}
             />
@@ -273,23 +318,45 @@ export const EventDetails = () => {
         </Box>
 
         {/* Right Side - Information */}
-        <Box sx={{ width: "55%" }}>
+        <Box sx={{ width: isMobile ? "100%" : "55%" }}>
           {/* Event Details */}
-          <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Paper
+            sx={{ p: isMobile ? 2 : 3, mb: isMobile ? 2 : 3, borderRadius: 2 }}
+          >
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <CalendarMonth sx={{ mr: 1, color: "text.secondary" }} />
-              <Typography variant="body1">
+              <CalendarMonth
+                sx={{
+                  mr: 1,
+                  color: "text.secondary",
+                  fontSize: isMobile ? 18 : 24,
+                }}
+              />
+              <Typography variant={isMobile ? "body2" : "body1"}>
                 {new Date(event.date).toLocaleDateString()} at{" "}
                 {new Date(event.date).toLocaleTimeString()}
               </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <LocationOn sx={{ mr: 1, color: "text.secondary" }} />
-              <Typography variant="body1">{event.location}</Typography>
+              <LocationOn
+                sx={{
+                  mr: 1,
+                  color: "text.secondary",
+                  fontSize: isMobile ? 18 : 24,
+                }}
+              />
+              <Typography variant={isMobile ? "body2" : "body1"}>
+                {event.location}
+              </Typography>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <People sx={{ mr: 1, color: "text.secondary" }} />
-              <Typography variant="body1">
+              <People
+                sx={{
+                  mr: 1,
+                  color: "text.secondary",
+                  fontSize: isMobile ? 18 : 24,
+                }}
+              />
+              <Typography variant={isMobile ? "body2" : "body1"}>
                 {event.attendees?.[0]?.count || 0} attendees
                 {event.max_attendees && ` / ${event.max_attendees} max`}
               </Typography>
@@ -310,11 +377,15 @@ export const EventDetails = () => {
             <Tabs
               value={selectedTab}
               onChange={handleTabChange}
+              variant={isMobile ? "scrollable" : "standard"}
+              scrollButtons={isMobile ? "auto" : false}
               sx={{
                 borderBottom: 1,
                 borderColor: "divider",
                 "& .MuiTab-root": {
                   color: "text.secondary",
+                  fontSize: isMobile ? "0.95rem" : undefined,
+                  minWidth: isMobile ? 90 : undefined,
                   "&.Mui-selected": {
                     color: "#d4af37",
                   },
@@ -330,7 +401,7 @@ export const EventDetails = () => {
             </Tabs>
 
             {/* Tab Panels */}
-            <Box sx={{ p: 3 }}>
+            <Box sx={{ p: isMobile ? 1.5 : 3 }}>
               {selectedTab === 0 && (
                 <Box>
                   <Box
@@ -341,7 +412,11 @@ export const EventDetails = () => {
                       mb: 2,
                     }}
                   >
-                    <Typography variant="body1" paragraph sx={{ flex: 1 }}>
+                    <Typography
+                      variant={isMobile ? "body2" : "body1"}
+                      paragraph
+                      sx={{ flex: 1 }}
+                    >
                       {event.description}
                     </Typography>
                     {isCreator && (
@@ -361,7 +436,7 @@ export const EventDetails = () => {
 
               {selectedTab === 1 && (
                 <Box>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
                     Event Attendees
                   </Typography>
                   {attendees.length === 0 ? (
@@ -369,28 +444,37 @@ export const EventDetails = () => {
                       No attendees yet. Be the first to RSVP!
                     </Typography>
                   ) : (
-                    <Grid container spacing={2}>
+                    <Grid container spacing={isMobile ? 1 : 2}>
                       {attendees.map((attendee) => (
                         <Grid item xs={12} sm={6} md={4} key={attendee.id}>
                           <Paper
                             sx={{
-                              p: 2,
+                              p: isMobile ? 1.5 : 2,
                               display: "flex",
                               alignItems: "center",
-                              gap: 2,
+                              gap: isMobile ? 1 : 2,
                             }}
                           >
                             <Avatar
                               src={attendee.user?.avatar_url}
                               alt={attendee.user?.name || "Unknown User"}
+                              sx={{
+                                width: isMobile ? 36 : 48,
+                                height: isMobile ? 36 : 48,
+                              }}
                             />
                             <Box>
-                              <Typography variant="subtitle1">
+                              <Typography
+                                variant={isMobile ? "body2" : "subtitle1"}
+                              >
                                 {attendee.user?.name || "Unknown User"}
                               </Typography>
                               <Typography
                                 variant="body2"
                                 color="text.secondary"
+                                sx={{
+                                  fontSize: isMobile ? "0.9rem" : undefined,
+                                }}
                               >
                                 Joined{" "}
                                 {new Date(
@@ -408,7 +492,7 @@ export const EventDetails = () => {
 
               {selectedTab === 2 && (
                 <Box>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
                     Comments
                   </Typography>
                   {/* TODO: Add comments section */}
@@ -418,20 +502,48 @@ export const EventDetails = () => {
           </Paper>
 
           {/* Social Actions */}
-          <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
-            <Button startIcon={<Favorite />} sx={{ color: "text.secondary" }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: isMobile ? 1 : 2,
+              mt: 3,
+              flexWrap: isMobile ? "wrap" : "nowrap",
+            }}
+          >
+            <Button
+              startIcon={<Favorite />}
+              sx={{
+                color: "text.secondary",
+                fontSize: isMobile ? "0.95rem" : undefined,
+              }}
+            >
               Like
             </Button>
-            <Button startIcon={<Comment />} sx={{ color: "text.secondary" }}>
+            <Button
+              startIcon={<Comment />}
+              sx={{
+                color: "text.secondary",
+                fontSize: isMobile ? "0.95rem" : undefined,
+              }}
+            >
               Comment
             </Button>
-            <Button startIcon={<Share />} sx={{ color: "text.secondary" }}>
+            <Button
+              startIcon={<Share />}
+              sx={{
+                color: "text.secondary",
+                fontSize: isMobile ? "0.95rem" : undefined,
+              }}
+            >
               Share
             </Button>
             {isCreator && (
               <Button
                 startIcon={<Delete />}
-                sx={{ color: "error.main" }}
+                sx={{
+                  color: "error.main",
+                  fontSize: isMobile ? "0.95rem" : undefined,
+                }}
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 Delete Event
@@ -514,4 +626,3 @@ export const EventDetails = () => {
     </Box>
   );
 };
- 
