@@ -19,6 +19,7 @@ import VehicleCard from "../components/garage/VehicleCard";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabase/client";
 import AddVehicleForm from "../components/garage/AddVehicleForm";
+import { useNavigate } from "react-router-dom";
 
 const vehicleTypes = [
   "Project Car",
@@ -43,6 +44,7 @@ export const Garage = () => {
   }>({ open: false, message: "", severity: "success" });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<any>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchVehicles = async () => {
@@ -160,6 +162,7 @@ export const Garage = () => {
       .order("created_at", { ascending: false });
     setVehicles(data || []);
     setSaving(false);
+    navigate("/garage");
   };
 
   const handleDeleteVehicle = (vehicle: any) => {

@@ -425,39 +425,6 @@ export const Profile = () => {
       </Snackbar>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Contact Information
-              </Typography>
-              <List>
-                <ListItem>
-                  <ListItemIcon>
-                    <LocationOn color="primary" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Location"
-                    secondary={profile.location}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <Email color="primary" />
-                  </ListItemIcon>
-                  <ListItemText primary="Email" secondary={profile.email} />
-                </ListItem>
-                <ListItem>
-                  <ListItemIcon>
-                    <Phone color="primary" />
-                  </ListItemIcon>
-                  <ListItemText primary="Phone" secondary={profile.phone} />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-
         <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
