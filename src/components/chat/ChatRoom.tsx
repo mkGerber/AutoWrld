@@ -27,10 +27,13 @@ import {
   Group,
   PhotoCamera,
   Settings,
+  Menu,
 } from "@mui/icons-material";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabase/client";
 import { useParams, useNavigate } from "react-router-dom";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 
 interface Message {
   id: string;
@@ -89,6 +92,9 @@ export const ChatRoom = () => {
   const [editImage, setEditImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
 
   const fetchGroup = async () => {
     if (!id) return;
@@ -676,6 +682,11 @@ export const ChatRoom = () => {
             <IconButton onClick={() => setAddMemberDialogOpen(true)}>
               <PersonAdd />
             </IconButton>
+            {isMobile && (
+              <IconButton onClick={() => setMembersDialogOpen(true)}>
+                <Menu />
+              </IconButton>
+            )}
             {user?.id === group.created_by && (
               <IconButton onClick={handleOpenSettings}>
                 <Settings />
@@ -779,51 +790,53 @@ export const ChatRoom = () => {
           </Box>
         </Paper>
 
-        {/* Members sidebar */}
-        <Box
-          sx={{
-            width: 280,
-            borderLeft: 1,
-            borderColor: "divider",
-            p: 2,
-            display: "flex",
-            flexDirection: "column",
-            minWidth: 0,
-            overflow: "auto",
-          }}
-        >
-          <Typography variant="h6" gutterBottom>
-            Members ({members.length})
-          </Typography>
-          <List>
-            {members.map((member) => (
-              <ListItem key={member.id}>
-                <ListItemAvatar>
-                  <Avatar src={member.user.avatar_url || undefined}>
-                    {member.user.name?.[0]}
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText
-                  primary={member.user.name}
-                  secondary={member.role}
-                />
-                {onlineMembers.some(
-                  (online) => online.id === member.user.id
-                ) && (
-                  <Box
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      bgcolor: "success.main",
-                      ml: 1,
-                    }}
+        {/* Members sidebar: only show on desktop */}
+        {!isMobile && (
+          <Box
+            sx={{
+              width: 280,
+              borderLeft: 1,
+              borderColor: "divider",
+              p: 2,
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+              overflow: "auto",
+            }}
+          >
+            <Typography variant="h6" gutterBottom>
+              Members ({members.length})
+            </Typography>
+            <List>
+              {members.map((member) => (
+                <ListItem key={member.id}>
+                  <ListItemAvatar>
+                    <Avatar src={member.user.avatar_url || undefined}>
+                      {member.user.name?.[0]}
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={member.user.name}
+                    secondary={member.role}
                   />
-                )}
-              </ListItem>
-            ))}
-          </List>
-        </Box>
+                  {onlineMembers.some(
+                    (online) => online.id === member.user.id
+                  ) && (
+                    <Box
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        bgcolor: "success.main",
+                        ml: 1,
+                      }}
+                    />
+                  )}
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        )}
       </Box>
 
       <Dialog
@@ -941,6 +954,48 @@ export const ChatRoom = () => {
           <Button onClick={handleDeleteGroup} color="error" disabled={saving}>
             Delete Group
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Members Dialog for mobile */}
+      <Dialog
+        open={membersDialogOpen}
+        onClose={() => setMembersDialogOpen(false)}
+        fullWidth
+      >
+        <DialogTitle>Members ({members.length})</DialogTitle>
+        <DialogContent>
+          <List>
+            {members.map((member) => (
+              <ListItem key={member.id}>
+                <ListItemAvatar>
+                  <Avatar src={member.user.avatar_url || undefined}>
+                    {member.user.name?.[0]}
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText
+                  primary={member.user.name}
+                  secondary={member.role}
+                />
+                {onlineMembers.some(
+                  (online) => online.id === member.user.id
+                ) && (
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor: "success.main",
+                      ml: 1,
+                    }}
+                  />
+                )}
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMembersDialogOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>
