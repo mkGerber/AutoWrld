@@ -48,6 +48,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../services/supabase/client";
 import VehicleComments from "../components/vehicle/VehicleComments";
+import { useAuth } from "../context/AuthContext";
 
 const statusColors = {
   "In Progress": "#ff9800",
@@ -80,6 +81,7 @@ function TabPanel(props: TabPanelProps) {
 export const VehicleDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedImage, setSelectedImage] = useState(0);
   const [vehicle, setVehicle] = useState<any>(null);
@@ -295,6 +297,9 @@ export const VehicleDetails = () => {
     setAddingTimeline(false);
   };
 
+  // Helper function to check if current user is the owner
+  const isOwner = user && vehicle && user.id === vehicle.user_id;
+
   return (
     <Box
       sx={{
@@ -334,13 +339,15 @@ export const VehicleDetails = () => {
               >
                 {vehicle.name}
               </Typography>
-              <IconButton
-                size="small"
-                onClick={() => handleEdit("name", vehicle.name)}
-                sx={{ color: "#d4af37" }}
-              >
-                <Edit />
-              </IconButton>
+              {isOwner && (
+                <IconButton
+                  size="small"
+                  onClick={() => handleEdit("name", vehicle.name)}
+                  sx={{ color: "#d4af37" }}
+                >
+                  <Edit />
+                </IconButton>
+              )}
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
               <Avatar
@@ -470,52 +477,58 @@ export const VehicleDetails = () => {
         {/* Right Side - Information */}
         <Box sx={{ width: isMobile ? "100%" : "55%" }}>
           {/* Build Progress */}
-          <Paper
-            sx={{ p: isMobile ? 2 : 3, mb: isMobile ? 2 : 3, borderRadius: 2 }}
-          >
-            <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
-              Build Progress
-            </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Slider
-                value={buildProgressValue ?? 0}
-                onChange={handleBuildProgressChange}
-                min={0}
-                max={100}
-                step={1}
-                sx={{ flex: 1, color: "#d4af37" }}
-                aria-label="Build Progress"
-              />
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ minWidth: 40 }}
-              >
-                {buildProgressValue ?? 0}%
+          {isOwner && (
+            <Paper
+              sx={{
+                p: isMobile ? 2 : 3,
+                mb: isMobile ? 2 : 3,
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
+                Build Progress
               </Typography>
-            </Box>
-            <Box sx={{ textAlign: "right", mt: 1 }}>
-              <Button
-                variant="contained"
-                color="secondary"
-                size="small"
-                onClick={handleSaveBuildProgress}
-                disabled={
-                  savingBuildProgress ||
-                  buildProgressValue === vehicle?.buildProgress
-                }
-                sx={{
-                  backgroundColor: "#d4af37",
-                  color: "#0a0f2c",
-                  "&:hover": { backgroundColor: "#e4bf47" },
-                  fontSize: isMobile ? "0.95rem" : undefined,
-                  py: isMobile ? 1 : undefined,
-                }}
-              >
-                {savingBuildProgress ? "Saving..." : "Save"}
-              </Button>
-            </Box>
-          </Paper>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Slider
+                  value={buildProgressValue ?? 0}
+                  onChange={handleBuildProgressChange}
+                  min={0}
+                  max={100}
+                  step={1}
+                  sx={{ flex: 1, color: "#d4af37" }}
+                  aria-label="Build Progress"
+                />
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ minWidth: 40 }}
+                >
+                  {buildProgressValue ?? 0}%
+                </Typography>
+              </Box>
+              <Box sx={{ textAlign: "right", mt: 1 }}>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  size="small"
+                  onClick={handleSaveBuildProgress}
+                  disabled={
+                    savingBuildProgress ||
+                    buildProgressValue === vehicle?.buildProgress
+                  }
+                  sx={{
+                    backgroundColor: "#d4af37",
+                    color: "#0a0f2c",
+                    "&:hover": { backgroundColor: "#e4bf47" },
+                    fontSize: isMobile ? "0.95rem" : undefined,
+                    py: isMobile ? 1 : undefined,
+                  }}
+                >
+                  {savingBuildProgress ? "Saving..." : "Save"}
+                </Button>
+              </Box>
+            </Paper>
+          )}
 
           {/* Tabs */}
           <Paper sx={{ borderRadius: 2 }}>
@@ -565,15 +578,17 @@ export const VehicleDetails = () => {
                     >
                       {vehicle.description}
                     </Typography>
-                    <IconButton
-                      size="small"
-                      onClick={() =>
-                        handleEdit("description", vehicle.description)
-                      }
-                      sx={{ color: "#d4af37" }}
-                    >
-                      <Edit />
-                    </IconButton>
+                    {isOwner && (
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          handleEdit("description", vehicle.description)
+                        }
+                        sx={{ color: "#d4af37" }}
+                      >
+                        <Edit />
+                      </IconButton>
+                    )}
                   </Box>
                   <Box
                     sx={{
@@ -589,16 +604,18 @@ export const VehicleDetails = () => {
                     >
                       Modifications
                     </Typography>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setTempModifications(vehicle.modifications || []);
-                        handleEdit("modifications", vehicle.modifications);
-                      }}
-                      sx={{ color: "#d4af37" }}
-                    >
-                      <Edit />
-                    </IconButton>
+                    {isOwner && (
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setTempModifications(vehicle.modifications || []);
+                          handleEdit("modifications", vehicle.modifications);
+                        }}
+                        sx={{ color: "#d4af37" }}
+                      >
+                        <Edit />
+                      </IconButton>
+                    )}
                   </Box>
                   <Box
                     sx={{
@@ -645,13 +662,15 @@ export const VehicleDetails = () => {
                             {vehicle.make}
                           </Typography>
                         </Box>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit("make", vehicle.make)}
-                          sx={{ color: "#d4af37" }}
-                        >
-                          <Edit />
-                        </IconButton>
+                        {isOwner && (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEdit("make", vehicle.make)}
+                            sx={{ color: "#d4af37" }}
+                          >
+                            <Edit />
+                          </IconButton>
+                        )}
                       </Box>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
@@ -667,13 +686,15 @@ export const VehicleDetails = () => {
                             {vehicle.model}
                           </Typography>
                         </Box>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit("model", vehicle.model)}
-                          sx={{ color: "#d4af37" }}
-                        >
-                          <Edit />
-                        </IconButton>
+                        {isOwner && (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEdit("model", vehicle.model)}
+                            sx={{ color: "#d4af37" }}
+                          >
+                            <Edit />
+                          </IconButton>
+                        )}
                       </Box>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
@@ -689,13 +710,15 @@ export const VehicleDetails = () => {
                             {vehicle.year}
                           </Typography>
                         </Box>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit("year", vehicle.year)}
-                          sx={{ color: "#d4af37" }}
-                        >
-                          <Edit />
-                        </IconButton>
+                        {isOwner && (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEdit("year", vehicle.year)}
+                            sx={{ color: "#d4af37" }}
+                          >
+                            <Edit />
+                          </IconButton>
+                        )}
                       </Box>
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 1 }}
@@ -711,15 +734,17 @@ export const VehicleDetails = () => {
                             {vehicle.horsepower} hp
                           </Typography>
                         </Box>
-                        <IconButton
-                          size="small"
-                          onClick={() =>
-                            handleEdit("horsepower", vehicle.horsepower)
-                          }
-                          sx={{ color: "#d4af37" }}
-                        >
-                          <Edit />
-                        </IconButton>
+                        {isOwner && (
+                          <IconButton
+                            size="small"
+                            onClick={() =>
+                              handleEdit("horsepower", vehicle.horsepower)
+                            }
+                            sx={{ color: "#d4af37" }}
+                          >
+                            <Edit />
+                          </IconButton>
+                        )}
                       </Box>
                     </Box>
                   ) : (
@@ -739,13 +764,15 @@ export const VehicleDetails = () => {
                               {vehicle.make}
                             </Typography>
                           </Box>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEdit("make", vehicle.make)}
-                            sx={{ color: "#d4af37" }}
-                          >
-                            <Edit />
-                          </IconButton>
+                          {isOwner && (
+                            <IconButton
+                              size="small"
+                              onClick={() => handleEdit("make", vehicle.make)}
+                              sx={{ color: "#d4af37" }}
+                            >
+                              <Edit />
+                            </IconButton>
+                          )}
                         </Box>
                       </Grid>
                       <Grid item xs={12} sm={6}>
@@ -763,13 +790,15 @@ export const VehicleDetails = () => {
                               {vehicle.model}
                             </Typography>
                           </Box>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEdit("model", vehicle.model)}
-                            sx={{ color: "#d4af37" }}
-                          >
-                            <Edit />
-                          </IconButton>
+                          {isOwner && (
+                            <IconButton
+                              size="small"
+                              onClick={() => handleEdit("model", vehicle.model)}
+                              sx={{ color: "#d4af37" }}
+                            >
+                              <Edit />
+                            </IconButton>
+                          )}
                         </Box>
                       </Grid>
                       <Grid item xs={12} sm={6}>
@@ -787,13 +816,15 @@ export const VehicleDetails = () => {
                               {vehicle.year}
                             </Typography>
                           </Box>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEdit("year", vehicle.year)}
-                            sx={{ color: "#d4af37" }}
-                          >
-                            <Edit />
-                          </IconButton>
+                          {isOwner && (
+                            <IconButton
+                              size="small"
+                              onClick={() => handleEdit("year", vehicle.year)}
+                              sx={{ color: "#d4af37" }}
+                            >
+                              <Edit />
+                            </IconButton>
+                          )}
                         </Box>
                       </Grid>
                       <Grid item xs={12} sm={6}>
@@ -811,15 +842,17 @@ export const VehicleDetails = () => {
                               {vehicle.horsepower} hp
                             </Typography>
                           </Box>
-                          <IconButton
-                            size="small"
-                            onClick={() =>
-                              handleEdit("horsepower", vehicle.horsepower)
-                            }
-                            sx={{ color: "#d4af37" }}
-                          >
-                            <Edit />
-                          </IconButton>
+                          {isOwner && (
+                            <IconButton
+                              size="small"
+                              onClick={() =>
+                                handleEdit("horsepower", vehicle.horsepower)
+                              }
+                              sx={{ color: "#d4af37" }}
+                            >
+                              <Edit />
+                            </IconButton>
+                          )}
                         </Box>
                       </Grid>
                     </Grid>
@@ -831,17 +864,19 @@ export const VehicleDetails = () => {
                 <Box>
                   <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
                     Build Timeline
-                    <Button
-                      size="small"
-                      sx={{
-                        ml: 2,
-                        color: "#d4af37",
-                        fontSize: isMobile ? "0.95rem" : undefined,
-                      }}
-                      onClick={() => setAddTimelineOpen(true)}
-                    >
-                      Add
-                    </Button>
+                    {isOwner && (
+                      <Button
+                        size="small"
+                        sx={{
+                          ml: 2,
+                          color: "#d4af37",
+                          fontSize: isMobile ? "0.95rem" : undefined,
+                        }}
+                        onClick={() => setAddTimelineOpen(true)}
+                      >
+                        Add
+                      </Button>
+                    )}
                   </Typography>
                   {timelineLoading ? (
                     <LinearProgress />
