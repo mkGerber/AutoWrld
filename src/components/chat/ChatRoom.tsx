@@ -432,6 +432,12 @@ export const ChatRoom = () => {
   }, [user, id]);
 
   useEffect(() => {
+    if (!loading) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+    }
+  }, [loading]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
