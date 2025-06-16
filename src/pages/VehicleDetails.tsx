@@ -49,6 +49,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../services/supabase/client";
 import VehicleComments from "../components/vehicle/VehicleComments";
 import { useAuth } from "../context/AuthContext";
+import imageCompression from "browser-image-compression";
 
 const statusColors = {
   "In Progress": "#ff9800",
@@ -104,6 +105,9 @@ export const VehicleDetails = () => {
     date: "",
   });
   const [addingTimeline, setAddingTimeline] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [deletingImage, setDeletingImage] = useState<string | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -297,6 +301,108 @@ export const VehicleDetails = () => {
     setAddingTimeline(false);
   };
 
+  // Handler for image upload
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = event.target.files;
+    if (!files || !vehicle) return;
+    setUploading(true);
+    setUploadError(null);
+    const maxSize = 15 * 1024 * 1024; // 15MB
+    const compressedFiles: File[] = [];
+    for (const file of Array.from(files)) {
+      if (file.size > maxSize) {
+        setUploadError(`File ${file.name} is too large (max 15MB).`);
+        continue;
+      }
+      try {
+        const compressed = await imageCompression(file, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true,
+        });
+        compressedFiles.push(compressed);
+      } catch (err) {
+        setUploadError(`Failed to compress ${file.name}`);
+      }
+    }
+    // Upload compressed files to storage and update vehicle images
+    try {
+      const uploadedUrls: string[] = [];
+      for (const file of compressedFiles) {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${vehicle.id}/${Date.now()}_${Math.random()
+          .toString(36)
+          .substring(2, 8)}.${fileExt}`;
+        const { data, error } = await supabase.storage
+          .from("vehicle-images")
+          .upload(fileName, file);
+        if (error) throw error;
+        const { data: urlData } = supabase.storage
+          .from("vehicle-images")
+          .getPublicUrl(fileName);
+        uploadedUrls.push(urlData.publicUrl);
+      }
+      // Update vehicle images in DB
+      const newImages = [...(parsedImages || []), ...uploadedUrls];
+      await supabase
+        .from("vehicles")
+        .update({ images: JSON.stringify(newImages) })
+        .eq("id", vehicle.id);
+      setVehicle({ ...vehicle, images: newImages });
+      setUploadError(null);
+    } catch (err: any) {
+      setUploadError(err.message || "Failed to upload images");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Handler for deleting an image
+  const handleDeleteImage = async (imageUrl: string) => {
+    if (!vehicle) return;
+    setDeletingImage(imageUrl);
+    try {
+      // Robustly extract the file path from the public URL
+      let filePath = "";
+      const marker = "/vehicle-images/";
+      const idx = imageUrl.indexOf(marker);
+      if (idx !== -1) {
+        filePath = imageUrl.substring(idx + marker.length);
+      }
+      if (!filePath)
+        throw new Error("Could not extract file path from image URL");
+      console.log("Attempting to delete file from storage:", filePath);
+      // Remove from storage
+      const { error: storageError } = await supabase.storage
+        .from("vehicle-images")
+        .remove([filePath]);
+      if (storageError) {
+        console.error("Supabase storage error:", storageError);
+        throw new Error("Supabase storage error: " + storageError.message);
+      }
+      // Remove from DB
+      const newImages = (parsedImages || []).filter((img) => img !== imageUrl);
+      await supabase
+        .from("vehicles")
+        .update({ images: JSON.stringify(newImages) })
+        .eq("id", vehicle.id);
+      setVehicle({ ...vehicle, images: newImages });
+      // If the deleted image was selected, reset selection
+      if (reversedImages[selectedImage] === imageUrl) {
+        setSelectedImage(0);
+      }
+    } catch (err: any) {
+      setUploadError(
+        err && err.message ? err.message : "Failed to delete image"
+      );
+      console.error("Image deletion error:", err);
+    } finally {
+      setDeletingImage(null);
+    }
+  };
+
   // Helper function to check if current user is the owner
   const isOwner = user && vehicle && user.id === vehicle.user_id;
 
@@ -439,6 +545,30 @@ export const VehicleDetails = () => {
               }}
             />
           </Paper>
+          {isOwner && (
+            <Box sx={{ mb: 2 }}>
+              <Button
+                component="label"
+                variant="outlined"
+                startIcon={<PhotoLibrary />}
+                disabled={uploading}
+              >
+                {uploading ? "Uploading..." : "Add Images"}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                />
+              </Button>
+              {uploadError && (
+                <Typography color="error" sx={{ mt: 1 }}>
+                  {uploadError}
+                </Typography>
+              )}
+            </Box>
+          )}
           <Box
             sx={{
               display: "flex",
@@ -467,6 +597,7 @@ export const VehicleDetails = () => {
                   borderRadius: 1,
                   overflow: "hidden",
                   background: "#181c2f",
+                  position: "relative",
                 }}
                 onClick={() => setSelectedImage(index)}
               >
@@ -481,6 +612,27 @@ export const VehicleDetails = () => {
                     display: "block",
                   }}
                 />
+                {isOwner && (
+                  <IconButton
+                    size="small"
+                    sx={{
+                      position: "absolute",
+                      top: 2,
+                      right: 2,
+                      background: "rgba(0,0,0,0.6)",
+                      color: "#fff",
+                      zIndex: 2,
+                      "&:hover": { background: "rgba(220,0,0,0.8)" },
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteImage(image);
+                    }}
+                    disabled={deletingImage === image}
+                  >
+                    <Delete fontSize="small" />
+                  </IconButton>
+                )}
               </Box>
             ))}
           </Box>

@@ -20,8 +20,9 @@ import {
   Close as CloseIcon,
   CloudUpload,
 } from "@mui/icons-material";
-import { vehicleTypes } from "../../constants/vehicleTypes";  // accessing vehicle types from constants... (same is done in Discover.tsx)
+import { vehicleTypes } from "../../constants/vehicleTypes"; // accessing vehicle types from constants... (same is done in Discover.tsx)
 import { makes } from "../../constants/makes"; // "constants" folder created that can contain constants (like makes) so we don't have to repeat them in multiple files
+import imageCompression from "browser-image-compression";
 
 interface AddVehicleFormProps {
   open: boolean;
@@ -49,6 +50,7 @@ export const AddVehicleForm = ({
   const [newModification, setNewModification] = useState("");
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange =
     (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,21 +77,41 @@ export const AddVehicleForm = ({
     });
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = event.target.files;
     if (files && files.length > 0) {
       const fileArr = Array.from(files);
-      setSelectedFiles(fileArr);
-      // Generate previews
-      const readers = fileArr.map(
-        (file) =>
-          new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
-          })
-      );
-      Promise.all(readers).then(setPreviewImages);
+      const maxSize = 15 * 1024 * 1024; // 15MB
+      setError(null);
+      const compressedFiles: File[] = [];
+      const previewPromises: Promise<string>[] = [];
+      for (const file of fileArr) {
+        if (file.size > maxSize) {
+          setError(`File ${file.name} is too large (max 15MB).`);
+          continue;
+        }
+        try {
+          const compressed = await imageCompression(file, {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1200,
+            useWebWorker: true,
+          });
+          compressedFiles.push(compressed);
+          previewPromises.push(
+            new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(compressed);
+            })
+          );
+        } catch (err) {
+          setError(`Failed to compress ${file.name}`);
+        }
+      }
+      setSelectedFiles(compressedFiles);
+      Promise.all(previewPromises).then(setPreviewImages);
     }
   };
 
@@ -245,6 +267,11 @@ export const AddVehicleForm = ({
                     onChange={handleImageUpload}
                   />
                 </Button>
+                {error && (
+                  <Typography color="error" sx={{ mt: 1 }}>
+                    {error}
+                  </Typography>
+                )}
                 {previewImages.length > 0 && (
                   <Box
                     sx={{ mt: 2, display: "flex", gap: 2, flexWrap: "wrap" }}
