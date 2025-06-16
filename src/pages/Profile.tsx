@@ -31,14 +31,18 @@ import {
   Build,
   PhotoCamera,
   Logout,
+  PersonAdd,
+  PersonRemove,
+  Check,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { userId } = useParams();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -60,17 +64,28 @@ export const Profile = () => {
     message: string;
     severity: "success" | "error";
   }>({ open: false, message: "", severity: "success" });
+  const [friendshipStatus, setFriendshipStatus] = useState<
+    "none" | "pending" | "friends"
+  >("none");
+  const [updatingFriendship, setUpdatingFriendship] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!user) return;
       setLoading(true);
       setError("");
+      const targetUserId = userId || user?.id;
+      if (!targetUserId) {
+        setError("No user ID provided");
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("profiles")
         .select("name, username, bio, email, avatar_url, banner_url")
-        .eq("id", user.id)
+        .eq("id", targetUserId)
         .maybeSingle();
+
       if (error) {
         setError(error.message);
       } else {
@@ -79,7 +94,86 @@ export const Profile = () => {
       setLoading(false);
     };
     fetchProfile();
-  }, [user]);
+  }, [user, userId]);
+
+  useEffect(() => {
+    const checkFriendshipStatus = async () => {
+      if (!user || !userId || user.id === userId) return;
+
+      try {
+        // Check if there's an existing friendship
+        const { data: existingFriendship, error } = await supabase
+          .from("friendships")
+          .select("status")
+          .or(
+            `and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`
+          )
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (existingFriendship) {
+          setFriendshipStatus(
+            existingFriendship.status === "accepted" ? "friends" : "pending"
+          );
+        } else {
+          setFriendshipStatus("none");
+        }
+      } catch (err) {
+        console.error("Error checking friendship status:", err);
+      }
+    };
+
+    checkFriendshipStatus();
+  }, [user, userId]);
+
+  const handleFriendRequest = async () => {
+    if (!user || !userId || user.id === userId) return;
+    setUpdatingFriendship(true);
+
+    try {
+      if (friendshipStatus === "none") {
+        // Send friend request
+        const { error } = await supabase.from("friendships").insert({
+          sender_id: user.id,
+          receiver_id: userId,
+          status: "pending",
+        });
+
+        if (error) throw error;
+        setFriendshipStatus("pending");
+        setSnackbar({
+          open: true,
+          message: "Friend request sent!",
+          severity: "success",
+        });
+      } else if (friendshipStatus === "pending") {
+        // Cancel friend request
+        const { error } = await supabase
+          .from("friendships")
+          .delete()
+          .or(
+            `and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`
+          );
+
+        if (error) throw error;
+        setFriendshipStatus("none");
+        setSnackbar({
+          open: true,
+          message: "Friend request cancelled",
+          severity: "success",
+        });
+      }
+    } catch (err: any) {
+      setSnackbar({
+        open: true,
+        message: err.message || "An error occurred",
+        severity: "error",
+      });
+    } finally {
+      setUpdatingFriendship(false);
+    }
+  };
 
   const handleEditOpen = () => {
     setEditName(profile?.name || "");
@@ -195,6 +289,9 @@ export const Profile = () => {
     }
   };
 
+  // Helper function to check if viewing own profile
+  const isOwnProfile = !userId || userId === user?.id;
+
   if (loading) {
     return (
       <Box
@@ -275,7 +372,7 @@ export const Profile = () => {
             position: "relative",
             height: 200,
             bgcolor: "primary.main",
-            backgroundImage: profile.banner_url
+            backgroundImage: profile?.banner_url
               ? `url(${profile.banner_url})`
               : undefined,
             backgroundSize: "cover",
@@ -284,7 +381,7 @@ export const Profile = () => {
         />
         <Box sx={{ position: "relative", px: 3, pb: 3 }}>
           <Avatar
-            src={profile.avatar_url || ""}
+            src={profile?.avatar_url || ""}
             sx={{
               width: 120,
               height: 120,
@@ -294,124 +391,184 @@ export const Profile = () => {
               left: 24,
             }}
           >
-            {profile.name ? profile.name[0] : ""}
+            {profile?.name ? profile.name[0] : ""}
           </Avatar>
           <Box sx={{ ml: 15, pt: 2 }}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              {profile.name}
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Typography variant="h4" component="h1" gutterBottom>
+                {profile?.name}
+              </Typography>
+              {!isOwnProfile && (
+                <Button
+                  variant={
+                    friendshipStatus === "friends" ? "contained" : "outlined"
+                  }
+                  color={friendshipStatus === "friends" ? "success" : "primary"}
+                  startIcon={
+                    friendshipStatus === "friends" ? (
+                      <Check />
+                    ) : friendshipStatus === "pending" ? (
+                      <PersonRemove />
+                    ) : (
+                      <PersonAdd />
+                    )
+                  }
+                  onClick={handleFriendRequest}
+                  disabled={updatingFriendship}
+                  sx={{ ml: 2 }}
+                >
+                  {friendshipStatus === "friends"
+                    ? "Friends"
+                    : friendshipStatus === "pending"
+                    ? "Cancel Request"
+                    : "Add Friend"}
+                </Button>
+              )}
+            </Box>
             <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-              @{profile.username}
+              @{profile?.username}
             </Typography>
             <Typography variant="body1" paragraph>
-              {profile.bio}
+              {profile?.bio}
             </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {profile.email}
-            </Typography>
-            <Button
-              variant="outlined"
-              startIcon={<Edit />}
-              sx={{ mt: 2 }}
-              onClick={handleEditOpen}
-            >
-              Edit Profile
-            </Button>
+            {isOwnProfile && (
+              <>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {profile?.email}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  startIcon={<Edit />}
+                  sx={{ mt: 2 }}
+                  onClick={handleEditOpen}
+                >
+                  Edit Profile
+                </Button>
+              </>
+            )}
           </Box>
         </Box>
       </Card>
 
-      <Dialog open={editOpen} onClose={handleEditClose} maxWidth="xs" fullWidth>
-        <DialogTitle>Edit Profile</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="Name"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
+      {/* Only show edit dialog and sign out button for own profile */}
+      {isOwnProfile && (
+        <>
+          <Dialog
+            open={editOpen}
+            onClose={handleEditClose}
+            maxWidth="sm"
             fullWidth
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            label="Username"
-            value={editUsername}
-            onChange={(e) => setEditUsername(e.target.value)}
-            fullWidth
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            label="Bio"
-            value={editBio}
-            onChange={(e) => setEditBio(e.target.value)}
-            fullWidth
-            multiline
-            minRows={2}
-            sx={{ mb: 2 }}
-          />
-          <Box sx={{ textAlign: "center", mb: 2 }}>
-            <Box sx={{ mb: 1 }}>
-              <img
-                src={previewBanner}
-                alt="Banner Preview"
-                style={{
-                  width: "100%",
-                  maxHeight: 100,
-                  objectFit: "cover",
-                  borderRadius: 8,
-                }}
-              />
-            </Box>
-            <Button variant="outlined" component="label" sx={{ mb: 2 }}>
-              Upload Banner
-              <input
-                type="file"
-                hidden
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setEditBanner(file);
-                    setPreviewBanner(URL.createObjectURL(file));
-                  }
-                }}
-              />
-            </Button>
-          </Box>
-          <Box sx={{ textAlign: "center", mb: 2 }}>
-            <Avatar
-              src={previewAvatar}
-              sx={{ width: 80, height: 80, mx: "auto", mb: 1 }}
-            />
-            <Button variant="outlined" component="label">
-              Upload Picture
-              <input
-                type="file"
-                hidden
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setEditAvatar(file);
-                    setPreviewAvatar(URL.createObjectURL(file));
-                  }
-                }}
-              />
-            </Button>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleEditClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleEditSave}
-            variant="contained"
-            color="secondary"
-            disabled={saving}
           >
-            {saving ? <CircularProgress size={20} color="inherit" /> : "Save"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogContent>
+              <TextField
+                label="Name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                fullWidth
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Username"
+                value={editUsername}
+                onChange={(e) => setEditUsername(e.target.value)}
+                fullWidth
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Bio"
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                fullWidth
+                multiline
+                minRows={2}
+                sx={{ mb: 2 }}
+              />
+              <Box sx={{ textAlign: "center", mb: 2 }}>
+                <Box sx={{ mb: 1 }}>
+                  <img
+                    src={previewBanner}
+                    alt="Banner Preview"
+                    style={{
+                      width: "100%",
+                      maxHeight: 100,
+                      objectFit: "cover",
+                      borderRadius: 8,
+                    }}
+                  />
+                </Box>
+                <Button variant="outlined" component="label" sx={{ mb: 2 }}>
+                  Upload Banner
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setEditBanner(file);
+                        setPreviewBanner(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </Button>
+              </Box>
+              <Box sx={{ textAlign: "center", mb: 2 }}>
+                <Avatar
+                  src={previewAvatar}
+                  sx={{ width: 80, height: 80, mx: "auto", mb: 1 }}
+                />
+                <Button variant="outlined" component="label">
+                  Upload Picture
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setEditAvatar(file);
+                        setPreviewAvatar(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </Button>
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleEditClose} disabled={saving}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleEditSave}
+                variant="contained"
+                color="secondary"
+                disabled={saving}
+              >
+                {saving ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  "Save"
+                )}
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Paper
+            sx={{ p: 3, mt: 3, display: "flex", justifyContent: "center" }}
+          >
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<Logout />}
+              onClick={handleSignOut}
+              sx={{ minWidth: 200 }}
+            >
+              Sign Out
+            </Button>
+          </Paper>
+        </>
+      )}
 
       <Snackbar
         open={snackbar.open}
@@ -481,18 +638,6 @@ export const Profile = () => {
           </Card>
         </Grid>
       </Grid>
-
-      <Paper sx={{ p: 3, mt: 3, display: "flex", justifyContent: "center" }}>
-        <Button
-          variant="contained"
-          color="error"
-          startIcon={<Logout />}
-          onClick={handleSignOut}
-          sx={{ minWidth: 200 }}
-        >
-          Sign Out
-        </Button>
-      </Paper>
     </Box>
   );
 };

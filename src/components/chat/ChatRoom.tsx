@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogActions,
   Badge,
+  Autocomplete,
 } from "@mui/material";
 import {
   Send,
@@ -66,6 +67,13 @@ interface Member {
   role: "admin" | "member";
 }
 
+interface User {
+  id: string;
+  name: string;
+  username: string;
+  avatar_url: string;
+}
+
 export const ChatRoom = () => {
   const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
@@ -95,6 +103,9 @@ export const ChatRoom = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [membersDialogOpen, setMembersDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const fetchGroup = async () => {
     if (!id) return;
@@ -424,6 +435,40 @@ export const ChatRoom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    const searchUsers = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      setSearchLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, name, username, avatar_url")
+          .or(`username.ilike.%${searchQuery}%,name.ilike.%${searchQuery}%`)
+          .limit(5);
+
+        if (error) throw error;
+
+        // Filter out users who are already members
+        const memberIds = new Set(members.map((member) => member.user.id));
+        const filteredResults =
+          data?.filter((result) => !memberIds.has(result.id)) || [];
+
+        setSearchResults(filteredResults);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setSearchLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(searchUsers, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, members]);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user || !id) return;
@@ -444,32 +489,24 @@ export const ChatRoom = () => {
     }
   };
 
-  const handleAddMember = async () => {
-    if (!id || !newMemberUsername.trim()) return;
+  const handleAddMember = async (selectedUser: User) => {
+    if (!id) return;
 
     try {
-      // Find user by username
-      const { data: userData, error: userError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("username", newMemberUsername)
-        .single();
-
-      if (userError) throw new Error("User not found");
-
       // Add user to group
       const { error: memberError } = await supabase
         .from("group_chat_members")
         .insert({
           group_chat_id: id,
-          user_id: userData.id,
+          user_id: selectedUser.id,
           role: "member",
         });
 
       if (memberError) throw memberError;
 
       setAddMemberDialogOpen(false);
-      setNewMemberUsername("");
+      setSearchQuery("");
+      setSearchResults([]);
     } catch (err: any) {
       setError(err.message);
     }
@@ -811,13 +848,32 @@ export const ChatRoom = () => {
               {members.map((member) => (
                 <ListItem key={member.id}>
                   <ListItemAvatar>
-                    <Avatar src={member.user.avatar_url || undefined}>
+                    <Avatar
+                      src={member.user.avatar_url || undefined}
+                      sx={{ cursor: "pointer" }}
+                      onClick={() => navigate(`/profile/${member.user.id}`)}
+                    >
                       {member.user.name?.[0]}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary={member.user.name}
-                    secondary={member.role}
+                    primary={
+                      <Typography
+                        sx={{
+                          cursor: "pointer",
+                          fontWeight: 500,
+                          color: "#fff",
+                        }}
+                        onClick={() => navigate(`/profile/${member.user.id}`)}
+                      >
+                        {member.user.name}
+                      </Typography>
+                    }
+                    secondary={
+                      <Typography sx={{ color: "goldenrod" }}>
+                        {member.role}
+                      </Typography>
+                    }
                   />
                   {onlineMembers.some(
                     (online) => online.id === member.user.id
@@ -841,27 +897,66 @@ export const ChatRoom = () => {
 
       <Dialog
         open={addMemberDialogOpen}
-        onClose={() => setAddMemberDialogOpen(false)}
+        onClose={() => {
+          setAddMemberDialogOpen(false);
+          setSearchQuery("");
+          setSearchResults([]);
+        }}
+        PaperProps={{ sx: { minWidth: 380 } }}
       >
         <DialogTitle>Add Member</DialogTitle>
         <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Username"
-            fullWidth
-            value={newMemberUsername}
-            onChange={(e) => setNewMemberUsername(e.target.value)}
+          <Autocomplete
+            freeSolo
+            options={searchResults}
+            getOptionLabel={(option) =>
+              typeof option === "string"
+                ? option
+                : `${option.name} (@${option.username})`
+            }
+            renderOption={(props, option) => (
+              <ListItem {...props}>
+                <ListItemAvatar>
+                  <Avatar src={option.avatar_url} alt={option.name} />
+                </ListItemAvatar>
+                <ListItemText
+                  primary={option.name}
+                  secondary={`@${option.username}`}
+                />
+              </ListItem>
+            )}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                autoFocus
+                margin="dense"
+                label="Search users"
+                fullWidth
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                disabled={searchLoading}
+                sx={{ minWidth: 340 }}
+              />
+            )}
+            loading={searchLoading}
+            onChange={(_, value) => {
+              if (value && typeof value !== "string") {
+                handleAddMember(value);
+              }
+            }}
+            onInputChange={(_, value) => setSearchQuery(value)}
+            sx={{ minWidth: 340 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddMemberDialogOpen(false)}>Cancel</Button>
           <Button
-            onClick={handleAddMember}
-            variant="contained"
-            disabled={!newMemberUsername.trim()}
+            onClick={() => {
+              setAddMemberDialogOpen(false);
+              setSearchQuery("");
+              setSearchResults([]);
+            }}
           >
-            Add
+            Cancel
           </Button>
         </DialogActions>
       </Dialog>
@@ -969,13 +1064,28 @@ export const ChatRoom = () => {
             {members.map((member) => (
               <ListItem key={member.id}>
                 <ListItemAvatar>
-                  <Avatar src={member.user.avatar_url || undefined}>
+                  <Avatar
+                    src={member.user.avatar_url || undefined}
+                    sx={{ cursor: "pointer" }}
+                    onClick={() => navigate(`/profile/${member.user.id}`)}
+                  >
                     {member.user.name?.[0]}
                   </Avatar>
                 </ListItemAvatar>
                 <ListItemText
-                  primary={member.user.name}
-                  secondary={member.role}
+                  primary={
+                    <Typography
+                      sx={{ cursor: "pointer", fontWeight: 500, color: "#fff" }}
+                      onClick={() => navigate(`/profile/${member.user.id}`)}
+                    >
+                      {member.user.name}
+                    </Typography>
+                  }
+                  secondary={
+                    <Typography sx={{ color: "goldenrod" }}>
+                      {member.role}
+                    </Typography>
+                  }
                 />
                 {onlineMembers.some(
                   (online) => online.id === member.user.id

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   TextField,
@@ -7,19 +7,66 @@ import {
   CircularProgress,
   Paper,
   Typography,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Avatar,
+  Autocomplete,
 } from "@mui/material";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabase/client";
 
+interface User {
+  id: string;
+  name: string;
+  username: string;
+  avatar_url: string;
+}
+
 export const SendFriendRequest = () => {
   const { user } = useAuth();
-  const [username, setUsername] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    const searchUsers = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, name, username, avatar_url")
+          .or(`username.ilike.%${searchQuery}%,name.ilike.%${searchQuery}%`)
+          .limit(5);
+
+        if (error) throw error;
+
+        // Filter out the current user from results
+        const filteredResults =
+          data?.filter((result) => result.id !== user?.id) || [];
+
+        setSearchResults(filteredResults);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(searchUsers, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, user]);
+
+  const handleSendRequest = async (selectedUser: User) => {
     if (!user) return;
 
     setLoading(true);
@@ -27,23 +74,12 @@ export const SendFriendRequest = () => {
     setSuccess(false);
 
     try {
-      // First, find the user by username
-      const { data: receiverData, error: findError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("username", username)
-        .single();
-
-      if (findError) throw new Error("User not found");
-      if (receiverData.id === user.id)
-        throw new Error("Cannot send friend request to yourself");
-
       // Check if a friendship already exists
       const { data: existingFriendship, error: checkError } = await supabase
         .from("friendships")
         .select("id, status")
         .or(
-          `and(sender_id.eq.${user.id},receiver_id.eq.${receiverData.id}),and(sender_id.eq.${receiverData.id},receiver_id.eq.${user.id})`
+          `and(sender_id.eq.${user.id},receiver_id.eq.${selectedUser.id}),and(sender_id.eq.${selectedUser.id},receiver_id.eq.${user.id})`
         )
         .maybeSingle();
 
@@ -62,14 +98,16 @@ export const SendFriendRequest = () => {
       // Send the friend request
       const { error: sendError } = await supabase.from("friendships").insert({
         sender_id: user.id,
-        receiver_id: receiverData.id,
+        receiver_id: selectedUser.id,
         status: "pending",
       });
 
       if (sendError) throw sendError;
 
       setSuccess(true);
-      setUsername("");
+      setSearchQuery("");
+      setSelectedUser(null);
+      setSearchResults([]);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -83,35 +121,55 @@ export const SendFriendRequest = () => {
         <Typography variant="h6" gutterBottom>
           Send Friend Request
         </Typography>
-        <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            disabled={loading}
-            sx={{ mb: 2 }}
-          />
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
+        <Autocomplete
+          freeSolo
+          options={searchResults}
+          getOptionLabel={(option) =>
+            typeof option === "string"
+              ? option
+              : `${option.name} (@${option.username})`
+          }
+          renderOption={(props, option) => (
+            <ListItem {...props}>
+              <ListItemAvatar>
+                <Avatar src={option.avatar_url} alt={option.name} />
+              </ListItemAvatar>
+              <ListItemText
+                primary={option.name}
+                secondary={`@${option.username}`}
+              />
+            </ListItem>
           )}
-          {success && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              Friend request sent successfully!
-            </Alert>
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              fullWidth
+              label="Search users"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              disabled={loading}
+              sx={{ mb: 2 }}
+            />
           )}
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            disabled={loading || !username.trim()}
-          >
-            {loading ? <CircularProgress size={24} /> : "Send Request"}
-          </Button>
-        </Box>
+          loading={loading}
+          onChange={(_, value) => {
+            if (value && typeof value !== "string") {
+              setSelectedUser(value);
+              handleSendRequest(value);
+            }
+          }}
+          onInputChange={(_, value) => setSearchQuery(value)}
+        />
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Friend request sent successfully!
+          </Alert>
+        )}
       </Box>
     </Paper>
   );

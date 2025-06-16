@@ -350,20 +350,32 @@ export const VehicleDetails = () => {
               )}
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-              <Avatar
-                src={owner.avatar_url}
+              <Box
                 sx={{
-                  mr: 1,
-                  width: isMobile ? 32 : 40,
-                  height: isMobile ? 32 : 40,
+                  display: "flex",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  "&:hover": {
+                    opacity: 0.8,
+                  },
                 }}
-              />
-              <Typography
-                variant={isMobile ? "body2" : "subtitle1"}
-                color="text.secondary"
+                onClick={() => navigate(`/profile/${vehicle.user_id}`)}
               >
-                {owner.name}
-              </Typography>
+                <Avatar
+                  src={owner.avatar_url}
+                  sx={{
+                    mr: 1,
+                    width: isMobile ? 32 : 40,
+                    height: isMobile ? 32 : 40,
+                  }}
+                />
+                <Typography
+                  variant={isMobile ? "body2" : "subtitle1"}
+                  color="text.secondary"
+                >
+                  {owner.name}
+                </Typography>
+              </Box>
             </Box>
           </Box>
           <Chip

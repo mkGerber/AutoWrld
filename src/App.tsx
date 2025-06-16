@@ -43,6 +43,7 @@ function App() {
                         <Route path="/events" element={<Events />} />
                         <Route path="/garage" element={<Garage />} />
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/profile/:userId" element={<Profile />} />
                         <Route path="/discover" element={<Discover />} />
                         <Route path="/friends" element={<Friends />} />
                         <Route path="/chats" element={<Chats />} />
