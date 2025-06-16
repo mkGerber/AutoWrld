@@ -38,6 +38,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
+import imageCompression from "browser-image-compression";
 
 export const Profile = () => {
   const { user } = useAuth();
@@ -68,6 +69,7 @@ export const Profile = () => {
     "none" | "pending" | "friends"
   >("none");
   const [updatingFriendship, setUpdatingFriendship] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -195,16 +197,27 @@ export const Profile = () => {
     let avatarUrl = profile?.avatar_url;
     let bannerUrl = profile?.banner_url;
 
+    // Delete old avatar if uploading a new one
+    if (editAvatar && profile?.avatar_url) {
+      try {
+        const marker = "/avatars/";
+        const idx = profile.avatar_url.indexOf(marker);
+        if (idx !== -1) {
+          const filePath = profile.avatar_url.substring(idx + marker.length);
+          await supabase.storage.from("avatars").remove([filePath]);
+        }
+      } catch (err) {
+        // Ignore error, continue
+      }
+    }
+
     // If there's a new avatar file, upload it
     if (editAvatar) {
       const fileExt = editAvatar.name.split(".").pop();
       const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
-
-      // Upload the file to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(fileName, editAvatar);
-
       if (uploadError) {
         setSnackbar({
           open: true,
@@ -214,13 +227,24 @@ export const Profile = () => {
         setSaving(false);
         return;
       }
-
-      // Get the public URL
       const {
         data: { publicUrl },
       } = supabase.storage.from("avatars").getPublicUrl(fileName);
-
       avatarUrl = publicUrl;
+    }
+
+    // Delete old banner if uploading a new one
+    if (editBanner && profile?.banner_url) {
+      try {
+        const marker = "/banners/";
+        const idx = profile.banner_url.indexOf(marker);
+        if (idx !== -1) {
+          const filePath = profile.banner_url.substring(idx + marker.length);
+          await supabase.storage.from("banners").remove([filePath]);
+        }
+      } catch (err) {
+        // Ignore error, continue
+      }
     }
 
     // If there's a new banner file, upload it
@@ -291,6 +315,52 @@ export const Profile = () => {
 
   // Helper function to check if viewing own profile
   const isOwnProfile = !userId || userId === user?.id;
+
+  // Banner upload handler
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageError(null);
+      if (file.size > 30 * 1024 * 1024) {
+        setImageError("Banner image is too large (max 30MB)");
+        return;
+      }
+      try {
+        const compressed = await imageCompression(file, {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 2000,
+          useWebWorker: true,
+        });
+        setEditBanner(compressed);
+        setPreviewBanner(URL.createObjectURL(compressed));
+      } catch (err) {
+        setImageError("Failed to compress banner image");
+      }
+    }
+  };
+
+  // Avatar upload handler
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageError(null);
+      if (file.size > 20 * 1024 * 1024) {
+        setImageError("Profile photo is too large (max 20MB)");
+        return;
+      }
+      try {
+        const compressed = await imageCompression(file, {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 800,
+          useWebWorker: true,
+        });
+        setEditAvatar(compressed);
+        setPreviewAvatar(URL.createObjectURL(compressed));
+      } catch (err) {
+        setImageError("Failed to compress profile photo");
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -503,16 +573,15 @@ export const Profile = () => {
                     type="file"
                     hidden
                     accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setEditBanner(file);
-                        setPreviewBanner(URL.createObjectURL(file));
-                      }
-                    }}
+                    onChange={handleBannerChange}
                   />
                 </Button>
               </Box>
+              {imageError && (
+                <Typography color="error" sx={{ mt: 1 }}>
+                  {imageError}
+                </Typography>
+              )}
               <Box sx={{ textAlign: "center", mb: 2 }}>
                 <Avatar
                   src={previewAvatar}
@@ -524,16 +593,15 @@ export const Profile = () => {
                     type="file"
                     hidden
                     accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setEditAvatar(file);
-                        setPreviewAvatar(URL.createObjectURL(file));
-                      }
-                    }}
+                    onChange={handleAvatarChange}
                   />
                 </Button>
               </Box>
+              {imageError && (
+                <Typography color="error" sx={{ mt: 1 }}>
+                  {imageError}
+                </Typography>
+              )}
             </DialogContent>
             <DialogActions>
               <Button onClick={handleEditClose} disabled={saving}>
