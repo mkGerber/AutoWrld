@@ -28,6 +28,8 @@ import {
   Chat,
 } from "@mui/icons-material";
 
+import logo from "../../assets/AutoWrldLogo.png";
+
 interface LayoutProps {
   children: ReactNode;
 }
@@ -70,17 +72,16 @@ export const Layout = ({ children }: LayoutProps) => {
       }}
     >
       <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1 }}>
-        <DirectionsCar sx={{ color: "#d4af37", fontSize: "2rem" }} />
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 700,
-            letterSpacing: "-0.5px",
-            color: "#d4af37",
+        <img
+          src={logo}
+          alt="Auto Wrld Logo"
+          style={{
+            height: "40px",
+            width: "auto",
+            cursor: "pointer",
           }}
-        >
-          AUTO WRLD
-        </Typography>
+          onClick={() => navigate("/")}
+        />
       </Box>
       <Divider sx={{ borderColor: "rgba(212, 175, 55, 0.2)" }} />
       <List>
@@ -142,21 +143,16 @@ export const Layout = ({ children }: LayoutProps) => {
                 <MenuIcon />
               </IconButton>
             )}
-            <DirectionsCar sx={{ mr: 1, color: "#d4af37", fontSize: "2rem" }} />
-            <Typography
-              variant="h6"
-              component="div"
-              sx={{
+            <img
+              src={logo}
+              alt="Auto Wrld Logo"
+              style={{
+                height: "40px",
+                width: "auto",
                 cursor: "pointer",
-                fontWeight: 700,
-                letterSpacing: "-0.5px",
-                color: "#d4af37",
-                textShadow: "0 0 10px rgba(212, 175, 55, 0.3)",
               }}
               onClick={() => navigate("/")}
-            >
-              AUTO WRLD
-            </Typography>
+            />
           </Box>
           {!isMobile && (
             <Box sx={{ display: "flex", gap: 2 }}>

@@ -14,6 +14,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
+  LinearProgress,
+  Backdrop,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -51,6 +54,9 @@ export const AddVehicleForm = ({
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleChange =
     (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,12 +88,16 @@ export const AddVehicleForm = ({
   ) => {
     const files = event.target.files;
     if (files && files.length > 0) {
+      setIsUploading(true);
+      setUploadProgress(0);
       const fileArr = Array.from(files);
       const maxSize = 15 * 1024 * 1024; // 15MB
       setError(null);
       const compressedFiles: File[] = [];
       const previewPromises: Promise<string>[] = [];
-      for (const file of fileArr) {
+
+      for (let i = 0; i < fileArr.length; i++) {
+        const file = fileArr[i];
         if (file.size > maxSize) {
           setError(`File ${file.name} is too large (max 15MB).`);
           continue;
@@ -106,23 +116,64 @@ export const AddVehicleForm = ({
               reader.readAsDataURL(compressed);
             })
           );
+          // Update progress based on number of files processed
+          setUploadProgress(((i + 1) / fileArr.length) * 100);
         } catch (err) {
           setError(`Failed to compress ${file.name}`);
         }
       }
       setSelectedFiles(compressedFiles);
-      Promise.all(previewPromises).then(setPreviewImages);
+      await Promise.all(previewPromises).then(setPreviewImages);
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    onSubmit({ ...formData, files: selectedFiles });
-    onClose();
+    setIsSaving(true);
+    try {
+      await onSubmit({ ...formData, files: selectedFiles });
+      onClose();
+    } catch (error) {
+      setError("Failed to save vehicle. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+      <Backdrop
+        sx={{
+          color: "#fff",
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          position: "absolute",
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+        }}
+        open={isSaving}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 2,
+          }}
+        >
+          <CircularProgress size={60} thickness={4} sx={{ color: "#d4af37" }} />
+          <Typography variant="h6" sx={{ color: "#fff" }}>
+            Saving Vehicle...
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ color: "#fff", textAlign: "center", maxWidth: "300px" }}
+          >
+            Please wait while we save your vehicle and upload images to the
+            database. Do not close this window.
+          </Typography>
+        </Box>
+      </Backdrop>
       <DialogTitle>
         <Box
           sx={{
@@ -132,7 +183,7 @@ export const AddVehicleForm = ({
           }}
         >
           <Typography variant="h5">Add New Vehicle</Typography>
-          <IconButton onClick={onClose} size="small">
+          <IconButton onClick={onClose} size="small" disabled={isSaving}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -256,15 +307,35 @@ export const AddVehicleForm = ({
                 <Button
                   component="label"
                   variant="outlined"
-                  startIcon={<CloudUpload />}
+                  startIcon={
+                    isUploading ? (
+                      <CircularProgress size={20} sx={{ color: "#d4af37" }} />
+                    ) : (
+                      <CloudUpload />
+                    )
+                  }
+                  disabled={isUploading || isSaving}
+                  sx={{
+                    borderColor: "#d4af37",
+                    color: "#d4af37",
+                    "&:hover": {
+                      borderColor: "#e4bf47",
+                      backgroundColor: "rgba(212, 175, 55, 0.1)",
+                    },
+                    "&.Mui-disabled": {
+                      borderColor: "rgba(212, 175, 55, 0.3)",
+                      color: "rgba(212, 175, 55, 0.3)",
+                    },
+                  }}
                 >
-                  Upload Images
+                  {isUploading ? "Processing Images..." : "Upload Images"}
                   <input
                     type="file"
                     hidden
                     accept="image/*"
                     multiple
                     onChange={handleImageUpload}
+                    disabled={isUploading || isSaving}
                   />
                 </Button>
                 {error && (
@@ -295,8 +366,10 @@ export const AddVehicleForm = ({
           </Grid>
         </form>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={onClose}>Cancel</Button>
+      <DialogActions>
+        <Button onClick={onClose} disabled={isSaving}>
+          Cancel
+        </Button>
         <Button
           variant="contained"
           onClick={handleSubmit}
@@ -305,10 +378,30 @@ export const AddVehicleForm = ({
             !formData.make ||
             !formData.model ||
             !formData.year ||
-            !formData.type
+            !formData.type ||
+            isUploading ||
+            isSaving
           }
+          sx={{
+            backgroundColor: "#d4af37",
+            color: "#0a0f2c",
+            "&:hover": {
+              backgroundColor: "#e4bf47",
+            },
+            "&.Mui-disabled": {
+              backgroundColor: "rgba(212, 175, 55, 0.3)",
+              color: "rgba(10, 15, 44, 0.3)",
+            },
+          }}
         >
-          Add Vehicle
+          {isSaving ? (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <CircularProgress size={24} sx={{ color: "#0a0f2c" }} />
+              <Typography>Saving...</Typography>
+            </Box>
+          ) : (
+            "Add Vehicle"
+          )}
         </Button>
       </DialogActions>
     </Dialog>

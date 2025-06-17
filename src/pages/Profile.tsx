@@ -20,6 +20,8 @@ import {
   Alert,
   Snackbar,
   Paper,
+  ListItemAvatar,
+  IconButton,
 } from "@mui/material";
 import {
   LocationOn,
@@ -34,6 +36,7 @@ import {
   PersonAdd,
   PersonRemove,
   Check,
+  People,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabase/client";
@@ -70,6 +73,8 @@ export const Profile = () => {
   >("none");
   const [updatingFriendship, setUpdatingFriendship] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [friends, setFriends] = useState<any[]>([]);
+  const [loadingFriends, setLoadingFriends] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -361,6 +366,79 @@ export const Profile = () => {
       }
     }
   };
+
+  useEffect(() => {
+    const fetchFriends = async () => {
+      const targetUserId = userId || user?.id;
+      if (!targetUserId) {
+        setLoadingFriends(false);
+        return;
+      }
+
+      setLoadingFriends(true);
+      try {
+        // Fetch friends where user is receiver
+        const { data: receivedFriends, error: receivedError } = await supabase
+          .from("friendships")
+          .select(
+            `
+            id,
+            status,
+            created_at,
+            profile:sender_id (
+              id,
+              name,
+              avatar_url,
+              username
+            )
+          `
+          )
+          .eq("receiver_id", targetUserId)
+          .eq("status", "accepted");
+
+        if (receivedError) throw receivedError;
+
+        // Fetch friends where user is sender
+        const { data: sentFriends, error: sentError } = await supabase
+          .from("friendships")
+          .select(
+            `
+            id,
+            status,
+            created_at,
+            profile:receiver_id (
+              id,
+              name,
+              avatar_url,
+              username
+            )
+          `
+          )
+          .eq("sender_id", targetUserId)
+          .eq("status", "accepted");
+
+        if (sentError) throw sentError;
+
+        // Combine both results
+        const allFriends = [
+          ...(receivedFriends || []),
+          ...(sentFriends || []),
+        ].sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        setFriends(allFriends);
+      } catch (err: any) {
+        console.error("Error fetching friends:", err);
+        setError(err.message);
+      } finally {
+        setLoadingFriends(false);
+      }
+    };
+
+    fetchFriends();
+  }, [userId, user?.id]);
 
   if (loading) {
     return (
@@ -702,6 +780,64 @@ export const Profile = () => {
                   </Box>
                 </Grid>
               </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <People sx={{ color: "#d4af37", mr: 1 }} />
+                <Typography variant="h6">Friends</Typography>
+              </Box>
+
+              {loadingFriends ? (
+                <Box display="flex" justifyContent="center" p={3}>
+                  <CircularProgress />
+                </Box>
+              ) : friends.length === 0 ? (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  align="center"
+                >
+                  No friends yet
+                </Typography>
+              ) : (
+                <List>
+                  {friends.map((friend) => (
+                    <ListItem
+                      key={friend.id}
+                      sx={{
+                        cursor: "pointer",
+                        "&:hover": {
+                          backgroundColor: "rgba(212, 175, 55, 0.1)",
+                          borderRadius: 1,
+                        },
+                      }}
+                      onClick={() => navigate(`/profile/${friend.profile.id}`)}
+                    >
+                      <ListItemAvatar>
+                        <Avatar
+                          src={friend.profile.avatar_url}
+                          alt={friend.profile.name}
+                        />
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={friend.profile.name}
+                        secondary={`@${friend.profile.username}`}
+                        primaryTypographyProps={{
+                          sx: { color: "#fff" },
+                        }}
+                        secondaryTypographyProps={{
+                          sx: { color: "rgba(255, 255, 255, 0.7)" },
+                        }}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              )}
             </CardContent>
           </Card>
         </Grid>
