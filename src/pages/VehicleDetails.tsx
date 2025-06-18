@@ -38,6 +38,7 @@ import {
   CalendarToday,
   LocationOn,
   Favorite,
+  FavoriteBorder,
   Share,
   Comment,
   ArrowBack,
@@ -108,11 +109,14 @@ export const VehicleDetails = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
+  const [likesCount, setLikesCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [liking, setLiking] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
-    const fetchVehicle = async () => {
+    const fetchVehicleAndLikes = async () => {
       setLoading(true);
       // 1. Fetch vehicle
       const { data: vehicleData, error: vehicleError } = await supabase
@@ -143,11 +147,35 @@ export const VehicleDetails = () => {
         }
       }
 
+      // 3. Check if current user has liked this vehicle
+      let userLiked = false;
+      if (user && id) {
+        try {
+          const { data: likeData, error: likeError } = await supabase
+            .from("vehicle_likes")
+            .select("id")
+            .eq("vehicle_id", id)
+            .eq("user_id", user.id)
+            .single();
+
+          if (!likeError && likeData) {
+            userLiked = true;
+          }
+        } catch (error) {
+          console.warn("Could not check user like status:", error);
+          // If there's an error (like table doesn't exist), default to not liked
+          userLiked = false;
+        }
+      }
+
       setVehicle({ ...vehicleData, owner });
+      setLikesCount(vehicleData.likes_count || 0);
+      setIsLiked(userLiked);
       setLoading(false);
     };
-    fetchVehicle();
-  }, [id, navigate]);
+
+    fetchVehicleAndLikes();
+  }, [id, navigate, user]);
 
   useEffect(() => {
     if (vehicle && typeof vehicle.buildProgress === "number") {
@@ -400,6 +428,86 @@ export const VehicleDetails = () => {
       console.error("Image deletion error:", err);
     } finally {
       setDeletingImage(null);
+    }
+  };
+
+  // Like/Unlike handler
+  const handleLikeToggle = async () => {
+    if (!user || !id || liking) return;
+
+    setLiking(true);
+    try {
+      if (isLiked) {
+        // Unlike
+        const { error: unlikeError } = await supabase
+          .from("vehicle_likes")
+          .delete()
+          .eq("vehicle_id", id)
+          .eq("user_id", user.id);
+
+        if (!unlikeError) {
+          // Update the likes count directly
+          const { error: updateError } = await supabase
+            .from("vehicles")
+            .update({
+              likes_count: Math.max(0, (vehicle?.likes_count || 0) - 1),
+            })
+            .eq("id", id);
+
+          if (!updateError) {
+            setIsLiked(false);
+            setLikesCount((prev) => Math.max(0, prev - 1));
+            // Update the vehicle state
+            setVehicle((prev: any) =>
+              prev
+                ? {
+                    ...prev,
+                    likes_count: Math.max(0, (prev.likes_count || 0) - 1),
+                  }
+                : null
+            );
+          } else {
+            console.error("Error updating likes count:", updateError);
+          }
+        } else {
+          console.error("Error unliking:", unlikeError);
+        }
+      } else {
+        // Like
+        const { error: likeError } = await supabase
+          .from("vehicle_likes")
+          .insert({
+            vehicle_id: id,
+            user_id: user.id,
+          });
+
+        if (!likeError) {
+          // Update the likes count directly
+          const { error: updateError } = await supabase
+            .from("vehicles")
+            .update({ likes_count: (vehicle?.likes_count || 0) + 1 })
+            .eq("id", id);
+
+          if (!updateError) {
+            setIsLiked(true);
+            setLikesCount((prev) => prev + 1);
+            // Update the vehicle state
+            setVehicle((prev: any) =>
+              prev
+                ? { ...prev, likes_count: (prev.likes_count || 0) + 1 }
+                : null
+            );
+          } else {
+            console.error("Error updating likes count:", updateError);
+          }
+        } else {
+          console.error("Error liking:", likeError);
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    } finally {
+      setLiking(false);
     }
   };
 
@@ -1165,13 +1273,20 @@ export const VehicleDetails = () => {
             }}
           >
             <Button
-              startIcon={<Favorite />}
+              startIcon={isLiked ? <Favorite /> : <FavoriteBorder />}
+              onClick={handleLikeToggle}
+              disabled={liking || !user}
               sx={{
-                color: "text.secondary",
+                color: isLiked ? "#d4af37" : "text.secondary",
                 fontSize: isMobile ? "0.95rem" : undefined,
+                "&:hover": {
+                  color: isLiked ? "#e4bf47" : "#d4af37",
+                },
               }}
             >
-              245 Likes
+              {liking
+                ? "..."
+                : `${likesCount} Like${likesCount === 1 ? "" : "s"}`}
             </Button>
             <Button
               startIcon={<Comment />}

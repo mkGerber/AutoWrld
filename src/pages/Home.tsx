@@ -196,7 +196,7 @@ export const Home = () => {
             name: vehicle.name,
             owner: vehicle.user?.name || "Anonymous",
             image: imageSrc,
-            likes: 0, // TODO: Implement likes system
+            likes: vehicle.likes_count || 0, // Use real likes count from database
             comments: 0, // TODO: Implement comments system
             modifications: vehicle.modifications || [],
           };
