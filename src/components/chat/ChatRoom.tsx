@@ -35,6 +35,7 @@ import { supabase } from "../../services/supabase/client";
 import { useParams, useNavigate } from "react-router-dom";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
+import { format, isToday, isYesterday } from "date-fns";
 
 interface Message {
   id: string;
@@ -799,7 +800,16 @@ export const ChatRoom = () => {
                     <Typography variant="body1">{message.content}</Typography>
                     <Typography variant="caption" color="text.secondary">
                       {message.sender.name} •{" "}
-                      {new Date(message.created_at).toLocaleTimeString()}
+                      {(() => {
+                        const date = new Date(message.created_at);
+                        if (isToday(date)) {
+                          return format(date, "h:mm a");
+                        } else if (isYesterday(date)) {
+                          return `Yesterday at ${format(date, "h:mm a")}`;
+                        } else {
+                          return format(date, "MMM d, h:mm a");
+                        }
+                      })()}
                     </Typography>
                   </Paper>
                 </ListItem>
