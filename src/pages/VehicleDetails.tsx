@@ -22,6 +22,11 @@ import {
   Slider,
   useTheme,
   useMediaQuery,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Checkbox,
 } from "@mui/material";
 import {
   Timeline,
@@ -44,6 +49,9 @@ import {
   ArrowBack,
   Edit,
   Delete,
+  Add,
+  CheckCircle,
+  CheckCircleOutline,
 } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -112,6 +120,17 @@ export const VehicleDetails = () => {
   const [likesCount, setLikesCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [liking, setLiking] = useState(false);
+  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+  const [wishlistLoading, setWishlistLoading] = useState(true);
+  const [addWishlistOpen, setAddWishlistOpen] = useState(false);
+  const [newWishlistItem, setNewWishlistItem] = useState({
+    title: "",
+    description: "",
+    priority: "medium",
+    estimated_cost: "",
+  });
+  const [addingWishlist, setAddingWishlist] = useState(false);
+  const [editingWishlist, setEditingWishlist] = useState<any>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -156,7 +175,7 @@ export const VehicleDetails = () => {
             .select("id")
             .eq("vehicle_id", id)
             .eq("user_id", user.id)
-            .single();
+            .maybeSingle();
 
           if (!likeError && likeData) {
             userLiked = true;
@@ -195,6 +214,21 @@ export const VehicleDetails = () => {
       setTimelineLoading(false);
     };
     if (id) fetchTimeline();
+  }, [id]);
+
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      setWishlistLoading(true);
+      const { data, error } = await supabase
+        .from("vehicle_wishlist")
+        .select("*")
+        .eq("vehicle_id", id)
+        .order("priority", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (!error) setWishlistItems(data || []);
+      setWishlistLoading(false);
+    };
+    if (id) fetchWishlist();
   }, [id]);
 
   if (loading) return <div>Loading...</div>;
@@ -514,6 +548,138 @@ export const VehicleDetails = () => {
   // Helper function to check if current user is the owner
   const isOwner = user && vehicle && user.id === vehicle.user_id;
 
+  const handleAddWishlistItem = async () => {
+    if (!id || !newWishlistItem.title.trim()) return;
+    setAddingWishlist(true);
+    try {
+      const { error, data } = await supabase
+        .from("vehicle_wishlist")
+        .insert([{ ...newWishlistItem, vehicle_id: id }])
+        .select()
+        .single();
+      if (!error && data) {
+        setWishlistItems([data, ...wishlistItems]);
+        setAddWishlistOpen(false);
+        setNewWishlistItem({
+          title: "",
+          description: "",
+          priority: "medium",
+          estimated_cost: "",
+        });
+      }
+    } catch (err) {
+      console.error("Error adding wishlist item:", err);
+    } finally {
+      setAddingWishlist(false);
+    }
+  };
+
+  const handleEditWishlistItem = async () => {
+    if (!editingWishlist || !editingWishlist.title.trim()) return;
+    try {
+      const { error } = await supabase
+        .from("vehicle_wishlist")
+        .update(editingWishlist)
+        .eq("id", editingWishlist.id);
+      if (!error) {
+        setWishlistItems(
+          wishlistItems.map((item) =>
+            item.id === editingWishlist.id ? editingWishlist : item
+          )
+        );
+        setEditingWishlist(null);
+      }
+    } catch (err) {
+      console.error("Error updating wishlist item:", err);
+    }
+  };
+
+  const handleToggleWishlistComplete = async (
+    itemId: string,
+    completed: boolean
+  ) => {
+    try {
+      const { error } = await supabase
+        .from("vehicle_wishlist")
+        .update({ completed: !completed })
+        .eq("id", itemId);
+      if (!error) {
+        setWishlistItems(
+          wishlistItems.map((item) =>
+            item.id === itemId ? { ...item, completed: !completed } : item
+          )
+        );
+
+        // If marking as complete, add to build timeline
+        if (!completed) {
+          const item = wishlistItems.find((w) => w.id === itemId);
+          if (item) {
+            const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+            const costText = item.estimated_cost
+              ? ` ($${item.estimated_cost})`
+              : "";
+            const timelineItem = {
+              title: `Completed: ${item.title}${costText}`,
+              description:
+                item.description || `Completed wishlist item: ${item.title}`,
+              date: today,
+              vehicle_id: id,
+            };
+
+            const { error: timelineError, data: timelineData } = await supabase
+              .from("vehicle_timeline")
+              .insert([timelineItem])
+              .select()
+              .single();
+
+            if (!timelineError && timelineData) {
+              setTimelineItems([timelineData, ...timelineItems]);
+            }
+          }
+        } else {
+          // If unchecking, remove from build timeline
+          const item = wishlistItems.find((w) => w.id === itemId);
+          if (item) {
+            const costText = item.estimated_cost
+              ? ` ($${item.estimated_cost})`
+              : "";
+            const { error: deleteError } = await supabase
+              .from("vehicle_timeline")
+              .delete()
+              .eq("title", `Completed: ${item.title}${costText}`)
+              .eq("vehicle_id", id);
+
+            if (!deleteError) {
+              // Remove from local state
+              setTimelineItems(
+                timelineItems.filter(
+                  (timelineItem) =>
+                    timelineItem.title !== `Completed: ${item.title}${costText}`
+                )
+              );
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling wishlist item:", err);
+    }
+  };
+
+  const handleDeleteWishlistItem = async (itemId: string) => {
+    try {
+      const { error } = await supabase
+        .from("vehicle_wishlist")
+        .delete()
+        .eq("id", itemId);
+      if (!error) {
+        setWishlistItems(wishlistItems.filter((item) => item.id !== itemId));
+      }
+    } catch (err) {
+      console.error("Error deleting wishlist item:", err);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -829,6 +995,7 @@ export const VehicleDetails = () => {
               <Tab label="Specifications" />
               <Tab label="Build Timeline" />
               <Tab label="Gallery" />
+              <Tab label="Wishlist" />
             </Tabs>
 
             {/* Tab Panels */}
@@ -1260,6 +1427,178 @@ export const VehicleDetails = () => {
                   )}
                 </Box>
               )}
+
+              {selectedTab === 4 && (
+                <Box>
+                  <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
+                    Wishlist & To-Do Items
+                    {isOwner && (
+                      <Button
+                        size="small"
+                        startIcon={<Add />}
+                        sx={{
+                          ml: 2,
+                          color: "#d4af37",
+                          fontSize: isMobile ? "0.95rem" : undefined,
+                        }}
+                        onClick={() => setAddWishlistOpen(true)}
+                      >
+                        Add Item
+                      </Button>
+                    )}
+                  </Typography>
+                  {wishlistLoading ? (
+                    <LinearProgress />
+                  ) : wishlistItems.length === 0 ? (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      align="center"
+                      sx={{ py: 4 }}
+                    >
+                      No wishlist items yet. {isOwner && "Add your first item!"}
+                    </Typography>
+                  ) : (
+                    <List>
+                      {wishlistItems.map((item) => (
+                        <ListItem
+                          key={item.id}
+                          sx={{
+                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                            borderRadius: 1,
+                            mb: 1,
+                            backgroundColor: item.completed
+                              ? "rgba(76, 175, 80, 0.1)"
+                              : "rgba(255, 255, 255, 0.02)",
+                            opacity: item.completed ? 0.7 : 1,
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 2,
+                          }}
+                        >
+                          <Box sx={{ mt: 0.5 }}>
+                            <Checkbox
+                              checked={item.completed || false}
+                              onChange={() =>
+                                handleToggleWishlistComplete(
+                                  item.id,
+                                  item.completed || false
+                                )
+                              }
+                              icon={
+                                <CheckCircleOutline sx={{ fontSize: 24 }} />
+                              }
+                              checkedIcon={
+                                <CheckCircle sx={{ fontSize: 24 }} />
+                              }
+                              sx={{
+                                color: "#d4af37",
+                                "&.Mui-checked": {
+                                  color: "#4caf50",
+                                },
+                                p: 0,
+                                "&:hover": {
+                                  backgroundColor: "rgba(212, 175, 55, 0.1)",
+                                  borderRadius: "50%",
+                                },
+                              }}
+                            />
+                          </Box>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant={isMobile ? "body2" : "body1"}
+                              sx={{
+                                textDecoration: item.completed
+                                  ? "line-through"
+                                  : "none",
+                                color: item.completed
+                                  ? "text.secondary"
+                                  : "text.primary",
+                                fontWeight: item.completed
+                                  ? "normal"
+                                  : "medium",
+                                mb: 1,
+                              }}
+                            >
+                              {item.title}
+                            </Typography>
+
+                            {item.description && (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ mb: 1 }}
+                              >
+                                {item.description}
+                              </Typography>
+                            )}
+
+                            <Box
+                              sx={{
+                                display: "flex",
+                                gap: 1,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <Chip
+                                label={item.priority}
+                                size="small"
+                                sx={{
+                                  backgroundColor:
+                                    item.priority === "high"
+                                      ? "rgba(244, 67, 54, 0.2)"
+                                      : item.priority === "medium"
+                                      ? "rgba(255, 152, 0, 0.2)"
+                                      : "rgba(76, 175, 80, 0.2)",
+                                  color:
+                                    item.priority === "high"
+                                      ? "#f44336"
+                                      : item.priority === "medium"
+                                      ? "#ff9800"
+                                      : "#4caf50",
+                                  fontSize: "0.75rem",
+                                }}
+                              />
+                              {item.estimated_cost && (
+                                <Chip
+                                  label={`$${item.estimated_cost}`}
+                                  size="small"
+                                  sx={{
+                                    backgroundColor: "rgba(212, 175, 55, 0.2)",
+                                    color: "#d4af37",
+                                    fontSize: "0.75rem",
+                                  }}
+                                />
+                              )}
+                            </Box>
+                          </Box>
+
+                          {isOwner && (
+                            <Box sx={{ display: "flex", gap: 1 }}>
+                              <IconButton
+                                size="small"
+                                onClick={() => setEditingWishlist(item)}
+                                sx={{ color: "#d4af37" }}
+                              >
+                                <Edit />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() =>
+                                  handleDeleteWishlistItem(item.id)
+                                }
+                                sx={{ color: "#f44336" }}
+                              >
+                                <Delete />
+                              </IconButton>
+                            </Box>
+                          )}
+                        </ListItem>
+                      ))}
+                    </List>
+                  )}
+                </Box>
+              )}
             </Box>
           </Paper>
 
@@ -1417,6 +1756,155 @@ export const VehicleDetails = () => {
             sx={{ color: "#d4af37" }}
           >
             {addingTimeline ? "Adding..." : "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Wishlist Item Dialog */}
+      <Dialog open={addWishlistOpen} onClose={() => setAddWishlistOpen(false)}>
+        <DialogTitle>Add Wishlist Item</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Title"
+            fullWidth
+            value={newWishlistItem.title}
+            onChange={(e) =>
+              setNewWishlistItem({ ...newWishlistItem, title: e.target.value })
+            }
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Description"
+            fullWidth
+            multiline
+            rows={3}
+            value={newWishlistItem.description}
+            onChange={(e) =>
+              setNewWishlistItem({
+                ...newWishlistItem,
+                description: e.target.value,
+              })
+            }
+            sx={{ mb: 2 }}
+          />
+          <Autocomplete
+            options={["high", "medium", "low"]}
+            value={newWishlistItem.priority}
+            onChange={(event, newValue) =>
+              setNewWishlistItem({
+                ...newWishlistItem,
+                priority: newValue || "medium",
+              })
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Priority"
+                fullWidth
+                sx={{ mb: 2 }}
+              />
+            )}
+          />
+          <TextField
+            label="Estimated Cost ($)"
+            type="number"
+            fullWidth
+            value={newWishlistItem.estimated_cost}
+            onChange={(e) =>
+              setNewWishlistItem({
+                ...newWishlistItem,
+                estimated_cost: e.target.value,
+              })
+            }
+            InputProps={{
+              startAdornment: <Typography>$</Typography>,
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddWishlistOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleAddWishlistItem}
+            disabled={addingWishlist || !newWishlistItem.title.trim()}
+            sx={{ color: "#d4af37" }}
+          >
+            {addingWishlist ? "Adding..." : "Add"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Wishlist Item Dialog */}
+      <Dialog open={!!editingWishlist} onClose={() => setEditingWishlist(null)}>
+        <DialogTitle>Edit Wishlist Item</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Title"
+            fullWidth
+            value={editingWishlist?.title || ""}
+            onChange={(e) =>
+              setEditingWishlist({
+                ...editingWishlist,
+                title: e.target.value,
+              })
+            }
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Description"
+            fullWidth
+            multiline
+            rows={3}
+            value={editingWishlist?.description || ""}
+            onChange={(e) =>
+              setEditingWishlist({
+                ...editingWishlist,
+                description: e.target.value,
+              })
+            }
+            sx={{ mb: 2 }}
+          />
+          <Autocomplete
+            options={["high", "medium", "low"]}
+            value={editingWishlist?.priority || "medium"}
+            onChange={(event, newValue) =>
+              setEditingWishlist({
+                ...editingWishlist,
+                priority: newValue || "medium",
+              })
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Priority"
+                fullWidth
+                sx={{ mb: 2 }}
+              />
+            )}
+          />
+          <TextField
+            label="Estimated Cost ($)"
+            type="number"
+            fullWidth
+            value={editingWishlist?.estimated_cost || ""}
+            onChange={(e) =>
+              setEditingWishlist({
+                ...editingWishlist,
+                estimated_cost: e.target.value,
+              })
+            }
+            InputProps={{
+              startAdornment: <Typography>$</Typography>,
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditingWishlist(null)}>Cancel</Button>
+          <Button
+            onClick={handleEditWishlistItem}
+            disabled={!editingWishlist?.title?.trim()}
+            sx={{ color: "#d4af37" }}
+          >
+            Save
           </Button>
         </DialogActions>
       </Dialog>

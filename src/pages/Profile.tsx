@@ -22,6 +22,7 @@ import {
   Paper,
   ListItemAvatar,
   IconButton,
+  Chip,
 } from "@mui/material";
 import {
   LocationOn,
@@ -37,11 +38,13 @@ import {
   PersonRemove,
   Check,
   People,
+  CalendarMonth,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabase/client";
 import { useNavigate, useParams } from "react-router-dom";
 import imageCompression from "browser-image-compression";
+import VehicleCard from "../components/garage/VehicleCard";
 
 export const Profile = () => {
   const { user } = useAuth();
@@ -75,6 +78,10 @@ export const Profile = () => {
   const [imageError, setImageError] = useState<string | null>(null);
   const [friends, setFriends] = useState<any[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loadingVehicles, setLoadingVehicles] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -440,6 +447,65 @@ export const Profile = () => {
     fetchFriends();
   }, [userId, user?.id]);
 
+  // Fetch vehicles
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      const targetUserId = userId || user?.id;
+      if (!targetUserId) {
+        setLoadingVehicles(false);
+        return;
+      }
+      setLoadingVehicles(true);
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("*")
+        .eq("user_id", targetUserId)
+        .order("created_at", { ascending: false });
+      if (!error) {
+        const transformedVehicles = (data || []).map((vehicle) => ({
+          ...vehicle,
+          images: Array.isArray(vehicle.images)
+            ? vehicle.images
+            : typeof vehicle.images === "string" && vehicle.images.length > 0
+            ? [vehicle.images]
+            : [],
+          status: vehicle.type?.toLowerCase().replace(" ", "") ?? "",
+          modifications: vehicle.modifications || [],
+          horsepower: vehicle.horsepower || 0,
+        }));
+        setVehicles(transformedVehicles);
+      }
+      setLoadingVehicles(false);
+    };
+    fetchVehicles();
+  }, [userId, user?.id]);
+
+  // Fetch events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      const targetUserId = userId || user?.id;
+      if (!targetUserId) {
+        setLoadingEvents(false);
+        return;
+      }
+      setLoadingEvents(true);
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, title, date, image_url")
+        .eq("created_by", targetUserId);
+      if (!error) setEvents(data || []);
+      setLoadingEvents(false);
+    };
+    fetchEvents();
+  }, [userId, user?.id]);
+
+  // Update stats with real data
+  const stats = {
+    vehicles: vehicles.length,
+    events: events.length,
+    modifications: 0, // Placeholder, update if you have this data
+  };
+
   if (loading) {
     return (
       <Box
@@ -699,20 +765,6 @@ export const Profile = () => {
               </Button>
             </DialogActions>
           </Dialog>
-
-          <Paper
-            sx={{ p: 3, mt: 3, display: "flex", justifyContent: "center" }}
-          >
-            <Button
-              variant="contained"
-              color="error"
-              startIcon={<Logout />}
-              onClick={handleSignOut}
-              sx={{ minWidth: 200 }}
-            >
-              Sign Out
-            </Button>
-          </Paper>
         </>
       )}
 
@@ -739,7 +791,7 @@ export const Profile = () => {
                   <Box sx={{ textAlign: "center", p: 2 }}>
                     <DirectionsCar color="primary" sx={{ fontSize: 40 }} />
                     <Typography variant="h4" sx={{ my: 1 }}>
-                      {profile.stats?.vehicles}
+                      {stats.vehicles}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Vehicles
@@ -750,7 +802,7 @@ export const Profile = () => {
                   <Box sx={{ textAlign: "center", p: 2 }}>
                     <Event color="primary" sx={{ fontSize: 40 }} />
                     <Typography variant="h4" sx={{ my: 1 }}>
-                      {profile.stats?.events}
+                      {stats.events}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Events
@@ -761,25 +813,176 @@ export const Profile = () => {
                   <Box sx={{ textAlign: "center", p: 2 }}>
                     <Build color="primary" sx={{ fontSize: 40 }} />
                     <Typography variant="h4" sx={{ my: 1 }}>
-                      {profile.stats?.modifications}
+                      {stats.modifications}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Modifications
                     </Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: "center", p: 2 }}>
-                    <PhotoCamera color="primary" sx={{ fontSize: 40 }} />
-                    <Typography variant="h4" sx={{ my: 1 }}>
-                      {profile.stats?.photos}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Photos
-                    </Typography>
-                  </Box>
-                </Grid>
               </Grid>
+            </CardContent>
+          </Card>
+
+          {/* Vehicles Section */}
+          <Card sx={{ mt: 3, background: "none", boxShadow: "none" }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Vehicles
+              </Typography>
+              {loadingVehicles ? (
+                <Box display="flex" justifyContent="center" p={3}>
+                  <CircularProgress />
+                </Box>
+              ) : vehicles.length === 0 ? (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  align="center"
+                >
+                  No vehicles found
+                </Typography>
+              ) : (
+                <Grid container spacing={3}>
+                  {vehicles.map((vehicle) => (
+                    <Grid
+                      item
+                      xs={12}
+                      sm={6}
+                      md={4}
+                      key={vehicle.id}
+                      display="flex"
+                      justifyContent="center"
+                    >
+                      <VehicleCard vehicle={vehicle} />
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Events Section */}
+          <Card sx={{ mt: 3, background: "none", boxShadow: "none" }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Events
+              </Typography>
+              {loadingEvents ? (
+                <Box display="flex" justifyContent="center" p={3}>
+                  <CircularProgress />
+                </Box>
+              ) : events.length === 0 ? (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  align="center"
+                >
+                  No events found
+                </Typography>
+              ) : (
+                <Grid container spacing={3}>
+                  {events.map((event) => (
+                    <Grid item xs={12} sm={6} md={4} key={event.id}>
+                      <Card
+                        sx={{
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          cursor: "pointer",
+                          borderRadius: 3,
+                          boxShadow: 3,
+                          transition: "transform 0.15s",
+                          background: "rgba(30, 30, 40, 0.98)",
+                          "&:hover": { transform: "scale(1.04)", boxShadow: 6 },
+                        }}
+                        onClick={() => navigate(`/event/${event.id}`)}
+                      >
+                        <Box
+                          component="img"
+                          src={
+                            event.image_url ||
+                            "https://source.unsplash.com/random/800x600/?car-meet"
+                          }
+                          alt={event.title}
+                          sx={{
+                            height: 200,
+                            width: "100%",
+                            objectFit: "cover",
+                            borderTopLeftRadius: 12,
+                            borderTopRightRadius: 12,
+                          }}
+                        />
+                        <CardContent sx={{ flexGrow: 1, p: 2 }}>
+                          <Box sx={{ mb: 1 }}>
+                            <Chip
+                              label={event.type || "Event"}
+                              size="small"
+                              color="primary"
+                            />
+                          </Box>
+                          <Typography
+                            gutterBottom
+                            variant="h6"
+                            component="h2"
+                            sx={{ color: "#d4af37", fontWeight: 700 }}
+                          >
+                            {event.title}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            paragraph
+                            sx={{ mb: 1 }}
+                          >
+                            {event.description || "No description provided."}
+                          </Typography>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mb: 1,
+                            }}
+                          >
+                            <CalendarMonth
+                              sx={{ mr: 1, color: "text.secondary" }}
+                            />
+                            <Typography variant="body2">
+                              {event.date
+                                ? new Date(event.date).toLocaleDateString()
+                                : "No date"}
+                            </Typography>
+                          </Box>
+                          {event.location && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                mb: 1,
+                              }}
+                            >
+                              <LocationOn
+                                sx={{ mr: 1, color: "text.secondary" }}
+                              />
+                              <Typography variant="body2">
+                                {event.location}
+                              </Typography>
+                            </Box>
+                          )}
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <People sx={{ mr: 1, color: "text.secondary" }} />
+                            <Typography variant="body2">
+                              {event.attendees?.[0]?.count || 0} attendees
+                              {event.max_attendees &&
+                                ` / ${event.max_attendees} max`}
+                            </Typography>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -842,6 +1045,21 @@ export const Profile = () => {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Move Sign Out button to the bottom of the page */}
+      {isOwnProfile && (
+        <Paper sx={{ p: 3, mt: 6, display: "flex", justifyContent: "center" }}>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<Logout />}
+            onClick={handleSignOut}
+            sx={{ minWidth: 200 }}
+          >
+            Sign Out
+          </Button>
+        </Paper>
+      )}
     </Box>
   );
 };
