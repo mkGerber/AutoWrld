@@ -135,6 +135,10 @@ export const VehicleDetails = () => {
   const [licenseState, setLicenseState] = useState("");
   const [editingLicense, setEditingLicense] = useState(false);
   const [savingLicense, setSavingLicense] = useState(false);
+  const [fanPhotos, setFanPhotos] = useState<any[]>([]);
+  const [fanPhotosLoading, setFanPhotosLoading] = useState(true);
+  const [selectedFanPhoto, setSelectedFanPhoto] = useState<any>(null);
+  const [fanPhotoModalOpen, setFanPhotoModalOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -235,6 +239,42 @@ export const VehicleDetails = () => {
       setWishlistLoading(false);
     };
     if (id) fetchWishlist();
+  }, [id]);
+
+  useEffect(() => {
+    const fetchFanPhotos = async () => {
+      if (!id) return;
+      setFanPhotosLoading(true);
+      try {
+        // Get accepted LPR invites with images for this vehicle
+        const { data, error } = await supabase
+          .from("lpr_invites")
+          .select(
+            `
+            *,
+            sender_profile:profiles!lpr_invites_sender_id_fkey(
+              name,
+              username,
+              avatar_url
+            )
+          `
+          )
+          .eq("vehicle_id", id)
+          .eq("status", "accepted")
+          .not("image_url", "is", null)
+          .order("created_at", { ascending: false });
+
+        if (!error && data) {
+          setFanPhotos(data);
+        }
+      } catch (err) {
+        console.error("Error fetching fan photos:", err);
+      } finally {
+        setFanPhotosLoading(false);
+      }
+    };
+
+    fetchFanPhotos();
   }, [id]);
 
   if (loading) return <div>Loading...</div>;
@@ -1020,7 +1060,7 @@ export const VehicleDetails = () => {
               <Tab label="Overview" />
               <Tab label="Specifications" />
               <Tab label="Build Timeline" />
-              <Tab label="Gallery" />
+              <Tab label="Fan Photos" />
               <Tab label="Wishlist" />
             </Tabs>
 
@@ -1376,80 +1416,198 @@ export const VehicleDetails = () => {
 
               {selectedTab === 3 && (
                 <Box>
-                  {isMobile ? (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "row",
-                        gap: 1,
-                        overflowX: "auto",
-                        pb: 1,
-                      }}
+                  <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
+                    Fan Photos
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mt: 1 }}
                     >
-                      {reversedImages.map((image: string, index: number) => (
-                        <Paper
-                          key={index}
-                          sx={{
-                            minWidth: 180,
-                            maxWidth: 220,
-                            height: 120,
-                            overflow: "hidden",
-                            cursor: "pointer",
-                            flexShrink: 0,
-                            "&:hover": {
-                              transform: "scale(1.02)",
-                              transition: "transform 0.2s",
-                            },
-                            background: "#181c2f",
-                          }}
-                          onClick={() => setSelectedImage(index)}
-                        >
-                          <img
-                            src={image}
-                            alt={`${vehicle.name} gallery ${index + 1}`}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "contain",
-                              background: "#181c2f",
-                              display: "block",
-                            }}
-                          />
-                        </Paper>
-                      ))}
+                      Photos taken by other users who spotted your vehicle
+                    </Typography>
+                  </Typography>
+
+                  {fanPhotosLoading ? (
+                    <LinearProgress />
+                  ) : fanPhotos.length === 0 ? (
+                    <Box sx={{ textAlign: "center", py: 4 }}>
+                      <PhotoLibrary
+                        sx={{
+                          fontSize: 64,
+                          color: "rgba(255, 255, 255, 0.3)",
+                          mb: 2,
+                        }}
+                      />
+                      <Typography variant="body2" color="text.secondary">
+                        No fan photos yet. When someone spots your vehicle and
+                        sends an LPR invite, accepted photos will appear here!
+                      </Typography>
                     </Box>
                   ) : (
-                    <Grid container spacing={2}>
-                      {reversedImages.map((image: string, index: number) => (
-                        <Grid item xs={12} sm={6} md={4} key={index}>
-                          <Paper
-                            sx={{
-                              height: 200,
-                              overflow: "hidden",
-                              cursor: "pointer",
-                              "&:hover": {
-                                transform: "scale(1.02)",
-                                transition: "transform 0.2s",
-                              },
-                              background: "#181c2f",
-                            }}
-                            onClick={() => setSelectedImage(index)}
-                          >
-                            <img
-                              src={image}
-                              alt={`${vehicle.name} gallery ${index + 1}`}
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "contain",
-                                background: "#181c2f",
-                                display: "block",
+                    <Box>
+                      {isMobile ? (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 2,
+                          }}
+                        >
+                          {fanPhotos.map((photo, index) => (
+                            <Paper
+                              key={photo.id}
+                              sx={{
+                                p: 2,
+                                backgroundColor: "rgba(255, 255, 255, 0.02)",
+                                border: "1px solid rgba(255, 255, 255, 0.1)",
+                                borderRadius: 2,
+                                cursor: "pointer",
+                                "&:hover": {
+                                  borderColor: "#d4af37",
+                                  transform: "translateY(-2px)",
+                                  transition: "all 0.3s ease",
+                                },
                               }}
-                            />
-                          </Paper>
+                              onClick={() => {
+                                setSelectedFanPhoto(photo);
+                                setFanPhotoModalOpen(true);
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  mb: 2,
+                                }}
+                              >
+                                <Avatar
+                                  src={photo.sender_profile?.avatar_url}
+                                  sx={{ mr: 2, bgcolor: "#d4af37" }}
+                                >
+                                  {photo.sender_profile?.name?.[0] || "?"}
+                                </Avatar>
+                                <Box>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{ color: "#d4af37" }}
+                                  >
+                                    {photo.sender_profile?.name || "Unknown"}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    {new Date(
+                                      photo.created_at
+                                    ).toLocaleDateString()}
+                                  </Typography>
+                                </Box>
+                              </Box>
+
+                              <img
+                                src={photo.image_url}
+                                alt={`Fan photo ${index + 1}`}
+                                style={{
+                                  width: "100%",
+                                  height: 200,
+                                  objectFit: "cover",
+                                  borderRadius: 8,
+                                  marginBottom: 8,
+                                }}
+                              />
+
+                              {photo.message && (
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                  sx={{ mt: 1 }}
+                                >
+                                  "{photo.message}"
+                                </Typography>
+                              )}
+                            </Paper>
+                          ))}
+                        </Box>
+                      ) : (
+                        <Grid container spacing={2}>
+                          {fanPhotos.map((photo, index) => (
+                            <Grid item xs={12} sm={6} md={4} key={photo.id}>
+                              <Paper
+                                sx={{
+                                  p: 2,
+                                  backgroundColor: "rgba(255, 255, 255, 0.02)",
+                                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                                  borderRadius: 2,
+                                  cursor: "pointer",
+                                  "&:hover": {
+                                    borderColor: "#d4af37",
+                                    transform: "translateY(-2px)",
+                                    transition: "all 0.3s ease",
+                                  },
+                                }}
+                                onClick={() => {
+                                  setSelectedFanPhoto(photo);
+                                  setFanPhotoModalOpen(true);
+                                }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    mb: 2,
+                                  }}
+                                >
+                                  <Avatar
+                                    src={photo.sender_profile?.avatar_url}
+                                    sx={{ mr: 2, bgcolor: "#d4af37" }}
+                                  >
+                                    {photo.sender_profile?.name?.[0] || "?"}
+                                  </Avatar>
+                                  <Box>
+                                    <Typography
+                                      variant="body2"
+                                      sx={{ color: "#d4af37" }}
+                                    >
+                                      {photo.sender_profile?.name || "Unknown"}
+                                    </Typography>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                    >
+                                      {new Date(
+                                        photo.created_at
+                                      ).toLocaleDateString()}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+
+                                <img
+                                  src={photo.image_url}
+                                  alt={`Fan photo ${index + 1}`}
+                                  style={{
+                                    width: "100%",
+                                    height: 200,
+                                    objectFit: "cover",
+                                    borderRadius: 8,
+                                    marginBottom: 8,
+                                  }}
+                                />
+
+                                {photo.message && (
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{ mt: 1 }}
+                                  >
+                                    "{photo.message}"
+                                  </Typography>
+                                )}
+                              </Paper>
+                            </Grid>
+                          ))}
                         </Grid>
-                      ))}
-                    </Grid>
+                      )}
+                    </Box>
                   )}
                 </Box>
               )}
@@ -1931,6 +2089,64 @@ export const VehicleDetails = () => {
             sx={{ color: "#d4af37" }}
           >
             Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Fan Photo Modal */}
+      <Dialog
+        open={fanPhotoModalOpen}
+        onClose={() => setFanPhotoModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Avatar
+              src={selectedFanPhoto?.sender_profile?.avatar_url}
+              sx={{ bgcolor: "#d4af37" }}
+            >
+              {selectedFanPhoto?.sender_profile?.name?.[0] || "?"}
+            </Avatar>
+            <Box>
+              <Typography variant="h6">
+                Photo by {selectedFanPhoto?.sender_profile?.name || "Unknown"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {selectedFanPhoto?.created_at &&
+                  new Date(selectedFanPhoto.created_at).toLocaleDateString()}
+              </Typography>
+            </Box>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ textAlign: "center", mb: 2 }}>
+            <img
+              src={selectedFanPhoto?.image_url}
+              alt="Fan photo"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "70vh",
+                objectFit: "contain",
+                borderRadius: 8,
+              }}
+            />
+          </Box>
+          {selectedFanPhoto?.message && (
+            <Typography
+              variant="body1"
+              sx={{ fontStyle: "italic", textAlign: "center" }}
+            >
+              "{selectedFanPhoto.message}"
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setFanPhotoModalOpen(false)}
+            sx={{ color: "#d4af37" }}
+          >
+            Close
           </Button>
         </DialogActions>
       </Dialog>

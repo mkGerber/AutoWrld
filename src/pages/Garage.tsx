@@ -13,12 +13,14 @@ import {
   TextField,
   Snackbar,
   MenuItem,
+  Badge,
 } from "@mui/material";
-import { Add } from "@mui/icons-material";
+import { Add, Mail } from "@mui/icons-material";
 import VehicleCard from "../components/garage/VehicleCard";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabase/client";
 import AddVehicleForm from "../components/garage/AddVehicleForm";
+import { LPRInbox } from "../components/garage/LPRInbox";
 import { useNavigate } from "react-router-dom";
 
 const vehicleTypes = [
@@ -44,6 +46,8 @@ export const Garage = () => {
   }>({ open: false, message: "", severity: "success" });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<any>(null);
+  const [lprInboxOpen, setLprInboxOpen] = useState(false);
+  const [pendingInvitesCount, setPendingInvitesCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -82,6 +86,28 @@ export const Garage = () => {
       setLoading(false);
     };
     fetchVehicles();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchPendingInvitesCount = async () => {
+      if (!user) return;
+
+      try {
+        const { count, error } = await supabase
+          .from("lpr_invites")
+          .select("*", { count: "exact", head: true })
+          .eq("recipient_id", user.id)
+          .eq("status", "pending");
+
+        if (!error && count !== null) {
+          setPendingInvitesCount(count);
+        }
+      } catch (err) {
+        console.error("Error fetching pending invites count:", err);
+      }
+    };
+
+    fetchPendingInvitesCount();
   }, [user]);
 
   const handleAddOpen = () => setAddOpen(true);
@@ -229,6 +255,17 @@ export const Garage = () => {
         >
           My Garage
         </Typography>
+        <Badge badgeContent={pendingInvitesCount} color="error" sx={{ mr: 2 }}>
+          <Button
+            variant="outlined"
+            color="secondary"
+            startIcon={<Mail />}
+            onClick={() => setLprInboxOpen(true)}
+            sx={{ borderColor: "#d4af37", color: "#d4af37" }}
+          >
+            LPR Inbox
+          </Button>
+        </Badge>
         <Button
           variant="contained"
           color="secondary"
@@ -259,6 +296,7 @@ export const Garage = () => {
         onClose={handleAddClose}
         onSubmit={handleAddVehicle}
       />
+      <LPRInbox open={lprInboxOpen} onClose={() => setLprInboxOpen(false)} />
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}

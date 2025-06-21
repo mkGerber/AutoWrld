@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   AppBar,
@@ -16,6 +16,7 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
+  Badge,
 } from "@mui/material";
 import {
   DirectionsCar,
@@ -27,9 +28,10 @@ import {
   People,
   Chat,
   PhotoCamera,
+  Mail,
 } from "@mui/icons-material";
-
-import logo from "../../assets/AutoWrldLogo.png";
+import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../services/supabase/client";
 
 interface LayoutProps {
   children: ReactNode;
@@ -41,12 +43,66 @@ export const Layout = ({ children }: LayoutProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { user } = useAuth();
+  const [pendingInvitesCount, setPendingInvitesCount] = useState(0);
+
+  useEffect(() => {
+    const fetchPendingInvitesCount = async () => {
+      if (!user) return;
+
+      try {
+        const { count, error } = await supabase
+          .from("lpr_invites")
+          .select("*", { count: "exact", head: true })
+          .eq("recipient_id", user.id)
+          .eq("status", "pending");
+
+        if (!error && count !== null) {
+          setPendingInvitesCount(count);
+        }
+      } catch (err) {
+        console.error("Error fetching pending invites count:", err);
+      }
+    };
+
+    fetchPendingInvitesCount();
+
+    // Set up real-time subscription for LPR invites
+    const channel = supabase
+      .channel("lpr_invites_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "lpr_invites",
+          filter: `recipient_id=eq.${user?.id}`,
+        },
+        () => {
+          fetchPendingInvitesCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const navItems = [
     { label: "Home", path: "/", icon: <Home /> },
     { label: "Discover", path: "/discover", icon: <Explore /> },
     { label: "Events", path: "/events", icon: <Event /> },
-    { label: "Garage", path: "/garage", icon: <DirectionsCar /> },
+    {
+      label: "Garage",
+      path: "/garage",
+      icon: (
+        <Badge badgeContent={pendingInvitesCount} color="error">
+          <Mail />
+        </Badge>
+      ),
+      showBadge: pendingInvitesCount > 0,
+    },
     { label: "LPR", path: "/lpr", icon: <PhotoCamera /> },
     { label: "Friends", path: "/friends", icon: <People /> },
     { label: "Chats", path: "/chats", icon: <Chat /> },
@@ -75,7 +131,7 @@ export const Layout = ({ children }: LayoutProps) => {
     >
       <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1 }}>
         <img
-          src={logo}
+          src="/AutoWrldLogo.png"
           alt="Auto Wrld Logo"
           style={{
             height: "40px",
@@ -146,7 +202,7 @@ export const Layout = ({ children }: LayoutProps) => {
               </IconButton>
             )}
             <img
-              src={logo}
+              src="/AutoWrldLogo.png"
               alt="Auto Wrld Logo"
               style={{
                 height: "40px",
