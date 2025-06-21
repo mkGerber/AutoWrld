@@ -131,6 +131,10 @@ export const VehicleDetails = () => {
   });
   const [addingWishlist, setAddingWishlist] = useState(false);
   const [editingWishlist, setEditingWishlist] = useState<any>(null);
+  const [licensePlate, setLicensePlate] = useState("");
+  const [licenseState, setLicenseState] = useState("");
+  const [editingLicense, setEditingLicense] = useState(false);
+  const [savingLicense, setSavingLicense] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -190,6 +194,8 @@ export const VehicleDetails = () => {
       setVehicle({ ...vehicleData, owner });
       setLikesCount(vehicleData.likes_count || 0);
       setIsLiked(userLiked);
+      setLicensePlate(vehicleData.license_plate || "");
+      setLicenseState(vehicleData.license_state || "");
       setLoading(false);
     };
 
@@ -678,6 +684,26 @@ export const VehicleDetails = () => {
     } catch (err) {
       console.error("Error deleting wishlist item:", err);
     }
+  };
+
+  const handleSaveLicense = async () => {
+    if (!id) return;
+    setSavingLicense(true);
+    try {
+      const { error } = await supabase
+        .from("vehicles")
+        .update({
+          license_plate: licensePlate,
+          license_state: licenseState,
+        })
+        .eq("id", id);
+      if (!error) {
+        setEditingLicense(false);
+      }
+    } catch (error) {
+      console.error("Error saving license plate:", error);
+    }
+    setSavingLicense(false);
   };
 
   return (
@@ -1908,6 +1934,90 @@ export const VehicleDetails = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* License Plate Section - Only visible to owner */}
+      {isOwner && (
+        <Grid item xs={12} sm={6}>
+          <Paper
+            sx={{
+              p: 3,
+              backgroundColor: "rgba(255, 255, 255, 0.02)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: 2,
+            }}
+          >
+            <Typography
+              variant={isMobile ? "h6" : "h5"}
+              gutterBottom
+              sx={{ color: "#d4af37", mb: 2 }}
+            >
+              License Plate (Private)
+            </Typography>
+
+            {editingLicense ? (
+              <Box>
+                <TextField
+                  label="License Plate"
+                  value={licensePlate}
+                  onChange={(e) => setLicensePlate(e.target.value)}
+                  fullWidth
+                  sx={{ mb: 2 }}
+                  placeholder="ABC123"
+                />
+                <TextField
+                  label="State"
+                  value={licenseState}
+                  onChange={(e) => setLicenseState(e.target.value)}
+                  fullWidth
+                  sx={{ mb: 2 }}
+                  placeholder="CA"
+                />
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Button
+                    variant="contained"
+                    onClick={handleSaveLicense}
+                    disabled={savingLicense}
+                    sx={{
+                      backgroundColor: "#d4af37",
+                      "&:hover": { backgroundColor: "#b8941f" },
+                    }}
+                  >
+                    {savingLicense ? "Saving..." : "Save"}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      setEditingLicense(false);
+                      setLicensePlate(vehicle?.license_plate || "");
+                      setLicenseState(vehicle?.license_state || "");
+                    }}
+                    sx={{ borderColor: "#d4af37", color: "#d4af37" }}
+                  >
+                    Cancel
+                  </Button>
+                </Box>
+              </Box>
+            ) : (
+              <Box>
+                <Typography variant="body1" sx={{ mb: 1 }}>
+                  <strong>Plate:</strong> {licensePlate || "Not set"}
+                </Typography>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  <strong>State:</strong> {licenseState || "Not set"}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  startIcon={<Edit />}
+                  onClick={() => setEditingLicense(true)}
+                  sx={{ borderColor: "#d4af37", color: "#d4af37" }}
+                >
+                  Edit License Plate
+                </Button>
+              </Box>
+            )}
+          </Paper>
+        </Grid>
+      )}
     </Box>
   );
 };

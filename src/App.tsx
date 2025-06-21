@@ -20,6 +20,7 @@ import { Discover } from "./pages/Discover";
 import { Friends } from "./pages/Friends";
 import { ChatRoom } from "./components/chat/ChatRoom";
 import { Chats } from "./pages/Chats";
+import LPR from "./pages/LPR";
 
 function App() {
   return (
@@ -53,6 +54,7 @@ function App() {
                         />
                         <Route path="/events/:id" element={<EventDetails />} />
                         <Route path="/chat/:id" element={<ChatRoom />} />
+                        <Route path="/lpr" element={<LPR />} />
                       </Routes>
                     </ProtectedRoute>
                   }

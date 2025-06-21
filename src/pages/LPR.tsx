@@ -1,0 +1,510 @@
+import React, { useState, useRef } from "react";
+import {
+  Box,
+  Typography,
+  Paper,
+  Button,
+  Card,
+  CardContent,
+  Avatar,
+  Chip,
+  CircularProgress,
+  Alert,
+  Grid,
+  useTheme,
+  useMediaQuery,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+} from "@mui/material";
+import {
+  PhotoCamera,
+  Search,
+  Person,
+  DirectionsCar,
+  LocationOn,
+  Upload,
+  Clear,
+} from "@mui/icons-material";
+import { supabase } from "../services/supabase/client";
+import { useAuth } from "../context/AuthContext";
+
+const LPR: React.FC = () => {
+  const { user } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [results, setResults] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [showResults, setShowResults] = useState(false);
+  const [licensePlate, setLicensePlate] = useState("");
+  const [showManualInput, setShowManualInput] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        setError("Please select an image file");
+        return;
+      }
+
+      // Validate file size (max 20MB)
+      if (file.size > 20 * 1024 * 1024) {
+        setError("File size must be less than 20MB");
+        return;
+      }
+
+      setSelectedFile(file);
+      setError(null);
+
+      // Create preview URL
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  const handleClear = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setResults([]);
+    setError(null);
+    setShowResults(false);
+    setLicensePlate("");
+    setShowManualInput(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleManualPlateSubmit = async () => {
+    if (!licensePlate.trim()) return;
+
+    setIsProcessing(true);
+    setShowManualInput(false);
+
+    try {
+      const plates = [licensePlate.trim().toUpperCase()];
+
+      // Search for vehicles with the manually entered plate
+      const vehicles = await searchForVehicles(plates);
+
+      setResults(vehicles);
+      setShowResults(true);
+    } catch (err) {
+      setError("Error searching for vehicles. Please try again.");
+      console.error("Search error:", err);
+    }
+
+    setIsProcessing(false);
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const searchForVehicles = async (plates: string[]) => {
+    const { data, error } = await supabase
+      .from("vehicles")
+      .select(
+        `
+        id,
+        make,
+        model,
+        year,
+        license_plate,
+        license_state,
+        user_id,
+        profiles!fk_vehicles_user (
+          id,
+          name,
+          username,
+          avatar_url
+        )
+      `
+      )
+      .in("license_plate", plates)
+      .not("license_plate", "is", null);
+
+    if (error) {
+      console.error("Error searching for vehicles:", error);
+      return [];
+    }
+
+    return data || [];
+  };
+
+  const handleProcessImage = async () => {
+    if (!selectedFile) return;
+
+    setIsProcessing(true);
+    setError(null);
+    setResults([]);
+
+    try {
+      // Simulate a brief processing time for UX
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Show manual input dialog
+      setShowManualInput(true);
+    } catch (err) {
+      setError("Error processing image. Please try again.");
+      console.error("Processing error:", err);
+    }
+
+    setIsProcessing(false);
+  };
+
+  const handleViewProfile = (userId: string) => {
+    // Navigate to user profile
+    window.open(`/profile/${userId}`, "_blank");
+  };
+
+  const handleViewVehicle = (vehicleId: string) => {
+    // Navigate to vehicle details
+    window.open(`/vehicle/${vehicleId}`, "_blank");
+  };
+
+  return (
+    <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
+      <Typography
+        variant={isMobile ? "h4" : "h3"}
+        gutterBottom
+        sx={{ color: "#d4af37", textAlign: "center", mb: 4 }}
+      >
+        License Plate Lookup
+      </Typography>
+
+      <Typography
+        variant="body1"
+        sx={{
+          textAlign: "center",
+          mb: 4,
+          color: "rgba(255, 255, 255, 0.7)",
+          maxWidth: 600,
+          mx: "auto",
+        }}
+      >
+        Upload a photo of a license plate and enter the plate number to find the
+        vehicle owner and their profile. Perfect for car meets, parking lots, or
+        finding friends' cars!
+      </Typography>
+
+      {/* Upload Section */}
+      <Paper
+        sx={{
+          p: 4,
+          backgroundColor: "rgba(255, 255, 255, 0.02)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: 2,
+          mb: 4,
+        }}
+      >
+        <Box
+          sx={{
+            border: "2px dashed rgba(255, 255, 255, 0.3)",
+            borderRadius: 2,
+            p: 4,
+            textAlign: "center",
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              borderColor: "#d4af37",
+              backgroundColor: "rgba(212, 175, 55, 0.05)",
+            },
+          }}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelect}
+            style={{ display: "none" }}
+          />
+
+          {!previewUrl ? (
+            <>
+              <Upload sx={{ fontSize: 48, color: "#d4af37", mb: 2 }} />
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                Click to upload or drag and drop
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: "rgba(255, 255, 255, 0.6)" }}
+              >
+                Supports JPG, PNG, GIF up to 20MB
+              </Typography>
+            </>
+          ) : (
+            <Box>
+              <img
+                src={previewUrl}
+                alt="Preview"
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: 300,
+                  borderRadius: 8,
+                  marginBottom: 16,
+                }}
+              />
+              <Typography variant="body1" sx={{ mb: 2 }}>
+                Image uploaded successfully
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {/* Action Buttons */}
+        <Box sx={{ display: "flex", gap: 2, mt: 3, justifyContent: "center" }}>
+          <Button
+            variant="contained"
+            startIcon={
+              isProcessing ? <CircularProgress size={20} /> : <Search />
+            }
+            onClick={handleProcessImage}
+            disabled={!selectedFile || isProcessing}
+            sx={{
+              backgroundColor: "#d4af37",
+              "&:hover": { backgroundColor: "#b8941f" },
+              minWidth: 150,
+            }}
+          >
+            {isProcessing ? "Processing..." : "Continue to Lookup"}
+          </Button>
+
+          <Button
+            variant="outlined"
+            startIcon={<Clear />}
+            onClick={handleClear}
+            disabled={isProcessing}
+            sx={{ borderColor: "#d4af37", color: "#d4af37" }}
+          >
+            Clear
+          </Button>
+        </Box>
+      </Paper>
+
+      {/* Results Section */}
+      {showResults && (
+        <Paper
+          sx={{
+            p: 4,
+            backgroundColor: "rgba(255, 255, 255, 0.02)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            variant={isMobile ? "h5" : "h4"}
+            gutterBottom
+            sx={{ color: "#d4af37", mb: 3 }}
+          >
+            Found Vehicles ({results.length})
+          </Typography>
+
+          {results.length === 0 ? (
+            <Alert severity="info">
+              No vehicles found with the detected license plates.
+            </Alert>
+          ) : (
+            <Grid container spacing={3}>
+              {results.map((vehicle) => (
+                <Grid item xs={12} sm={6} md={4} key={vehicle.id}>
+                  <Card
+                    sx={{
+                      backgroundColor: "rgba(255, 255, 255, 0.05)",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      "&:hover": {
+                        borderColor: "#d4af37",
+                        transform: "translateY(-2px)",
+                        transition: "all 0.3s ease",
+                      },
+                    }}
+                  >
+                    <CardContent>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", mb: 2 }}
+                      >
+                        <Avatar
+                          src={vehicle.profiles?.avatar_url}
+                          sx={{ mr: 2, bgcolor: "#d4af37" }}
+                        >
+                          {vehicle.profiles?.name?.[0] || "?"}
+                        </Avatar>
+                        <Box>
+                          <Typography variant="h6" sx={{ color: "#d4af37" }}>
+                            {vehicle.profiles?.name || "Unknown"}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "rgba(255, 255, 255, 0.6)" }}
+                          >
+                            @{vehicle.profiles?.username || "unknown"}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="h6" sx={{ mb: 1 }}>
+                          {vehicle.year} {vehicle.make} {vehicle.model}
+                        </Typography>
+                        {vehicle.user_id === user?.id ? (
+                          <Chip
+                            label={`${vehicle.license_plate} (${vehicle.license_state})`}
+                            sx={{
+                              backgroundColor: "rgba(212, 175, 55, 0.2)",
+                              color: "#d4af37",
+                              border: "1px solid #d4af37",
+                            }}
+                          />
+                        ) : (
+                          <Chip
+                            label="License plate hidden for privacy"
+                            sx={{
+                              backgroundColor: "rgba(255, 255, 255, 0.1)",
+                              color: "rgba(255, 255, 255, 0.6)",
+                              border: "1px solid rgba(255, 255, 255, 0.2)",
+                            }}
+                          />
+                        )}
+                      </Box>
+
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<Person />}
+                          onClick={() => handleViewProfile(vehicle.profiles.id)}
+                          sx={{ borderColor: "#d4af37", color: "#d4af37" }}
+                        >
+                          Profile
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<DirectionsCar />}
+                          onClick={() => handleViewVehicle(vehicle.id)}
+                          sx={{ borderColor: "#d4af37", color: "#d4af37" }}
+                        >
+                          Vehicle
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </Paper>
+      )}
+
+      {/* Info Section */}
+      <Paper
+        sx={{
+          p: 3,
+          backgroundColor: "rgba(255, 255, 255, 0.02)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: 2,
+          mt: 4,
+        }}
+      >
+        <Typography variant="h6" sx={{ color: "#d4af37", mb: 2 }}>
+          How it works
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={4}>
+            <Box sx={{ textAlign: "center" }}>
+              <PhotoCamera sx={{ fontSize: 40, color: "#d4af37", mb: 1 }} />
+              <Typography variant="body2">
+                1. Upload a photo of the license plate
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Box sx={{ textAlign: "center" }}>
+              <Search sx={{ fontSize: 40, color: "#d4af37", mb: 1 }} />
+              <Typography variant="body2">
+                2. Enter the license plate number manually
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Box sx={{ textAlign: "center" }}>
+              <Person sx={{ fontSize: 40, color: "#d4af37", mb: 1 }} />
+              <Typography variant="body2">
+                3. Find the vehicle owner and their profile
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Manual License Plate Input Dialog */}
+      <Dialog open={showManualInput} onClose={() => setShowManualInput(false)}>
+        <DialogTitle sx={{ color: "#d4af37" }}>
+          Enter License Plate Manually
+        </DialogTitle>
+        <DialogContent>
+          <Typography
+            variant="body2"
+            sx={{ mb: 2, color: "rgba(255, 255, 255, 0.7)" }}
+          >
+            Automatic detection couldn't find a license plate. Please enter the
+            plate number manually.
+          </Typography>
+          <TextField
+            label="License Plate"
+            value={licensePlate}
+            onChange={(e) => setLicensePlate(e.target.value)}
+            fullWidth
+            placeholder="e.g., ABC123"
+            sx={{ mb: 2 }}
+            inputProps={{
+              style: { textTransform: "uppercase" },
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setShowManualInput(false)}
+            sx={{ color: "rgba(255, 255, 255, 0.6)" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleManualPlateSubmit}
+            disabled={!licensePlate.trim()}
+            sx={{
+              backgroundColor: "#d4af37",
+              color: "white",
+              "&:hover": { backgroundColor: "#b8941f" },
+              "&:disabled": { backgroundColor: "rgba(255, 255, 255, 0.1)" },
+            }}
+          >
+            Search
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default LPR;

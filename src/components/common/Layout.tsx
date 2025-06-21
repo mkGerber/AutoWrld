@@ -26,6 +26,7 @@ import {
   Menu as MenuIcon,
   People,
   Chat,
+  PhotoCamera,
 } from "@mui/icons-material";
 
 import logo from "../../assets/AutoWrldLogo.png";
@@ -46,6 +47,7 @@ export const Layout = ({ children }: LayoutProps) => {
     { label: "Discover", path: "/discover", icon: <Explore /> },
     { label: "Events", path: "/events", icon: <Event /> },
     { label: "Garage", path: "/garage", icon: <DirectionsCar /> },
+    { label: "LPR", path: "/lpr", icon: <PhotoCamera /> },
     { label: "Friends", path: "/friends", icon: <People /> },
     { label: "Chats", path: "/chats", icon: <Chat /> },
     { label: "Profile", path: "/profile", icon: <Person /> },
