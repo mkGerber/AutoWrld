@@ -277,6 +277,26 @@ export const VehicleDetails = () => {
     fetchFanPhotos();
   }, [id]);
 
+  useEffect(() => {
+    const fetchCommentCount = async () => {
+      if (!id) return;
+      try {
+        const { count, error } = await supabase
+          .from("comments")
+          .select("*", { count: "exact", head: true })
+          .eq("vehicle_id", id);
+
+        if (!error && count !== null) {
+          setCommentCount(count);
+        }
+      } catch (err) {
+        console.error("Error fetching comment count:", err);
+      }
+    };
+
+    fetchCommentCount();
+  }, [id]);
+
   if (loading) return <div>Loading...</div>;
   if (!vehicle) return null;
 
@@ -1895,7 +1915,10 @@ export const VehicleDetails = () => {
       </Dialog>
 
       {/* Comments Section */}
-      <VehicleComments vehicleId={vehicle.id} />
+      <VehicleComments
+        vehicleId={vehicle.id}
+        onCommentChange={(newCount) => setCommentCount(newCount)}
+      />
 
       {/* Add Timeline Dialog */}
       <Dialog open={addTimelineOpen} onClose={() => setAddTimelineOpen(false)}>

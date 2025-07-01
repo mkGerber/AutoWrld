@@ -32,6 +32,7 @@ import {
 } from "@mui/icons-material";
 import { supabase } from "../services/supabase/client";
 import { useAuth } from "../context/AuthContext";
+import imageCompression from "browser-image-compression";
 
 const LPR: React.FC = () => {
   const { user } = useAuth();
@@ -220,11 +221,18 @@ const LPR: React.FC = () => {
       // Upload image if exists
       let imageUrl = null;
       if (selectedFile) {
-        const fileExt = selectedFile.name.split(".").pop();
-        const fileName = `lpr-invites/${Date.now()}_${selectedFile.name}`;
+        // Compress the image before upload
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(selectedFile, options);
+        const fileExt = compressedFile.name.split(".").pop();
+        const fileName = `lpr-invites/${Date.now()}_${compressedFile.name}`;
         const { error: uploadError } = await supabase.storage
           .from("vehicle-images")
-          .upload(fileName, selectedFile);
+          .upload(fileName, compressedFile);
 
         if (!uploadError) {
           imageUrl = supabase.storage
@@ -280,11 +288,18 @@ const LPR: React.FC = () => {
       // Upload image if exists
       let imageUrl = null;
       if (selectedFile) {
-        const fileExt = selectedFile.name.split(".").pop();
-        const fileName = `lpr-invites/${Date.now()}_${selectedFile.name}`;
+        // Compress the image before upload
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(selectedFile, options);
+        const fileExt = compressedFile.name.split(".").pop();
+        const fileName = `lpr-invites/${Date.now()}_${compressedFile.name}`;
         const { error: uploadError } = await supabase.storage
           .from("vehicle-images")
-          .upload(fileName, selectedFile);
+          .upload(fileName, compressedFile);
 
         if (!uploadError) {
           imageUrl = supabase.storage

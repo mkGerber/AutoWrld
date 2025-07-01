@@ -13,6 +13,7 @@ import { useAuth } from "../../context/AuthContext";
 
 interface VehicleCommentsProps {
   vehicleId: string;
+  onCommentChange?: (count: number) => void;
 }
 
 interface Comment {
@@ -25,7 +26,10 @@ interface Comment {
   };
 }
 
-const VehicleComments = ({ vehicleId }: VehicleCommentsProps) => {
+const VehicleComments = ({
+  vehicleId,
+  onCommentChange,
+}: VehicleCommentsProps) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +47,10 @@ const VehicleComments = ({ vehicleId }: VehicleCommentsProps) => {
       .order("created_at", { ascending: false });
     if (error) setError("Failed to load comments");
     setComments(data || []);
+    // Notify parent component of comment count change
+    if (onCommentChange) {
+      onCommentChange(data?.length || 0);
+    }
     setLoading(false);
   };
 
