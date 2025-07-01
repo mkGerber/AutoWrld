@@ -29,6 +29,7 @@ import {
   Chat,
   PhotoCamera,
   Mail,
+  TrendingUp,
 } from "@mui/icons-material";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabase/client";
@@ -91,6 +92,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
   const navItems = [
     { label: "Home", path: "/", icon: <Home /> },
+    { label: "Feed", path: "/feed", icon: <TrendingUp /> },
     { label: "Discover", path: "/discover", icon: <Explore /> },
     { label: "Events", path: "/events", icon: <Event /> },
     {

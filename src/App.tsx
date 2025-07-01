@@ -21,6 +21,7 @@ import { Friends } from "./pages/Friends";
 import { ChatRoom } from "./components/chat/ChatRoom";
 import { Chats } from "./pages/Chats";
 import LPR from "./pages/LPR";
+import { Feed } from "./pages/Feed";
 
 function App() {
   return (
@@ -55,6 +56,7 @@ function App() {
                         <Route path="/events/:id" element={<EventDetails />} />
                         <Route path="/chat/:id" element={<ChatRoom />} />
                         <Route path="/lpr" element={<LPR />} />
+                        <Route path="/feed" element={<Feed />} />
                       </Routes>
                     </ProtectedRoute>
                   }
