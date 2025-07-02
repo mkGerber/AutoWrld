@@ -133,7 +133,7 @@ export const Layout = ({ children }: LayoutProps) => {
     >
       <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1 }}>
         <img
-          src="/full72ppi.png"
+          src="/gearly-v2.png"
           alt="Gearly Logo"
           style={{
             height: "40px",
@@ -204,7 +204,7 @@ export const Layout = ({ children }: LayoutProps) => {
               </IconButton>
             )}
             <img
-              src="/full72ppi.png"
+              src="/gearly-v5.png"
               alt="Gearly Logo"
               style={{
                 height: "40px",
