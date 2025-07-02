@@ -252,7 +252,7 @@ export const Home = () => {
           }}
         >
           <Typography variant="h3" component="h1" gutterBottom>
-            Welcome to Auto Wrld
+            Welcome to Gearly
           </Typography>
           <Typography variant="h6" sx={{ mb: 2 }}>
             Connect with car enthusiasts, share your builds, and join events

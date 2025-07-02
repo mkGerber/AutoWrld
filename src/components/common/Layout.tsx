@@ -133,8 +133,8 @@ export const Layout = ({ children }: LayoutProps) => {
     >
       <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1 }}>
         <img
-          src="/AutoWrldLogo.png"
-          alt="Auto Wrld Logo"
+          src="/full72ppi.png"
+          alt="Gearly Logo"
           style={{
             height: "40px",
             width: "auto",
@@ -204,8 +204,8 @@ export const Layout = ({ children }: LayoutProps) => {
               </IconButton>
             )}
             <img
-              src="/AutoWrldLogo.png"
-              alt="Auto Wrld Logo"
+              src="/full72ppi.png"
+              alt="Gearly Logo"
               style={{
                 height: "40px",
                 width: "auto",
