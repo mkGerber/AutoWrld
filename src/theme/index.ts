@@ -4,73 +4,80 @@ export const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#0a0f2c', // Midnight Blue
-      light: '#1a1f3c',
-      dark: '#050a1c',
-      contrastText: '#fdfdfd', // Snow White
+      main: '#e6c200',
+      contrastText: '#181a20',
     },
     secondary: {
-      main: '#d4af37', // Champagne Gold
-      light: '#e4bf47',
-      dark: '#c49f27',
-      contrastText: '#0a0f2c', // Midnight Blue
+      main: '#e6c200',
+      contrastText: '#181a20',
     },
     background: {
-      default: '#0a0f2c', // Midnight Blue
-      paper: '#1a1f3c', // Lighter Midnight Blue
+      default: '#181a20',
+      paper: '#23262f',
     },
     text: {
-      primary: '#fdfdfd', // Snow White
-      secondary: '#d4af37', // Champagne Gold for secondary text
+      primary: '#f4f4f7',
+      secondary: '#b0b3b8',
+      disabled: '#393a40',
     },
+    divider: '#3a3d4d',
     error: {
-      main: '#d4af37', // Champagne Gold for errors
+      main: '#ff5370',
     },
     warning: {
-      main: '#d4af37', // Champagne Gold for warnings
+      main: '#e6c200',
     },
     info: {
-      main: '#d4af37', // Champagne Gold for info
-      light: '#e4bf47',
-      dark: '#c49f27',
-      contrastText: '#0a0f2c',
+      main: '#e6c200',
+      contrastText: '#181a20',
     },
     success: {
-      main: '#d4af37', // Champagne Gold for success
+      main: '#e6c200',
     },
-    divider: 'rgba(255, 255, 255, 0.1)',
+    accent: {
+      main: '#e6c200',
+    },
+    outline: '#3a3d4d',
+    surface: '#23262f',
+    surfaceVariant: '#2d303a',
+    onSurface: '#f4f4f7',
+    onBackground: '#f4f4f7',
+    onPrimary: '#e6c200',
+    onSecondary: '#181a20',
+    placeholder: '#6c6f7e',
+    backdrop: 'rgba(24, 26, 32, 0.7)',
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
       fontWeight: 700,
       fontSize: '2.5rem',
-      color: '#d4af37', // Champagne Gold for main headings
+      color: '#e6c200',
     },
     h2: {
       fontWeight: 600,
       fontSize: '2rem',
-      color: '#d4af37', // Champagne Gold for secondary headings
+      color: '#e6c200',
     },
     h3: {
       fontWeight: 600,
       fontSize: '1.75rem',
-      color: '#fdfdfd',
+      color: '#f4f4f7',
     },
     h4: {
       fontWeight: 600,
       fontSize: '1.5rem',
-      color: '#fdfdfd',
+      color: '#f4f4f7',
     },
     h5: {
       fontWeight: 600,
       fontSize: '1.25rem',
-      color: '#fdfdfd',
+      color: '#f4f4f7',
     },
     h6: {
       fontWeight: 600,
       fontSize: '1rem',
-      color: '#fdfdfd',
+      color: '#f4f4f7',
     },
     button: {
       textTransform: 'none',
@@ -79,34 +86,37 @@ export const theme = createTheme({
     body1: {
       fontSize: '1rem',
       lineHeight: 1.6,
+      color: '#f4f4f7',
     },
     body2: {
       fontSize: '0.875rem',
       lineHeight: 1.6,
+      color: '#f4f4f7',
     },
   },
   shape: {
-    borderRadius: 8,
+    borderRadius: 10,
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 10,
           padding: '8px 16px',
         },
         contained: {
-          boxShadow: 'none',
+          boxShadow: '0 4px 12px rgba(24,26,32,0.12)',
           '&:hover': {
-            boxShadow: 'none',
+            boxShadow: '0 4px 12px rgba(24,26,32,0.18)',
           },
         },
         outlined: {
-          borderColor: '#d4af37',
-          color: '#d4af37',
+          borderColor: '#e6c200',
+          color: '#e6c200',
+          borderRadius: 10,
           '&:hover': {
-            borderColor: '#e4bf47',
-            backgroundColor: 'rgba(212, 175, 55, 0.1)',
+            borderColor: '#e6c200',
+            backgroundColor: 'rgba(230, 194, 0, 0.08)',
           },
         },
       },
@@ -115,12 +125,12 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundImage: 'none',
-          backgroundColor: '#1a1f3c',
+          backgroundColor: '#23262f',
           borderRadius: 12,
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          border: '1px solid rgba(212, 175, 55, 0.1)',
+          boxShadow: '0 4px 12px rgba(24,26,32,0.12)',
+          border: '1px solid #3a3d4d',
           '&:hover': {
-            border: '1px solid rgba(212, 175, 55, 0.2)',
+            border: '1px solid #e6c200',
           },
         },
       },
@@ -129,19 +139,21 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundImage: 'none',
-          backgroundColor: '#0a0f2c',
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+          backgroundColor: '#181a20',
+          boxShadow: '0 2px 4px rgba(24,26,32,0.12)',
         },
       },
     },
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: 6,
-          borderColor: '#d4af37',
+          borderRadius: 20,
+          borderColor: '#e6c200',
+          color: '#e6c200',
+          backgroundColor: '#23262f',
           '&.MuiChip-outlined': {
-            borderColor: '#d4af37',
-            color: '#d4af37',
+            borderColor: '#e6c200',
+            color: '#e6c200',
           },
         },
       },
@@ -149,15 +161,16 @@ export const theme = createTheme({
     MuiDivider: {
       styleOverrides: {
         root: {
-          borderColor: 'rgba(212, 175, 55, 0.2)',
+          borderColor: '#3a3d4d',
         },
       },
     },
     MuiListItem: {
       styleOverrides: {
         root: {
+          borderRadius: 10,
           '&:hover': {
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            backgroundColor: 'rgba(230, 194, 0, 0.04)',
           },
         },
       },
@@ -165,9 +178,9 @@ export const theme = createTheme({
     MuiLink: {
       styleOverrides: {
         root: {
-          color: '#d4af37',
+          color: '#e6c200',
           '&:hover': {
-            color: '#e4bf47',
+            color: '#f4f4f7',
           },
         },
       },
