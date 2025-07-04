@@ -39,6 +39,7 @@ import {
   Check,
   People,
   CalendarMonth,
+  BugReport,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabase/client";
@@ -1048,7 +1049,16 @@ export const Profile = () => {
 
       {/* Move Sign Out button to the bottom of the page */}
       {isOwnProfile && (
-        <Paper sx={{ p: 3, mt: 6, display: "flex", justifyContent: "center" }}>
+        <Paper sx={{ p: 3, mt: 6, display: "flex", justifyContent: "center", gap: 2 }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<BugReport />}
+            onClick={() => window.open('https://forms.gle/gU5WthFHphXDJNLA8', '_blank')}
+            sx={{ minWidth: 200 }}
+          >
+            Report a Bug
+          </Button>
           <Button
             variant="contained"
             color="error"
