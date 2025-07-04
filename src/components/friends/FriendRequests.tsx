@@ -129,20 +129,20 @@ export const FriendRequests = () => {
             <Box key={request.id}>
               {index > 0 && <Divider />}
               <ListItem
+                sx={{ pr: 12 }} // right padding to prevent overlap
                 secondaryAction={
-                  <Box>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
                     <IconButton
-                      edge="end"
                       color="primary"
                       onClick={() => handleRequest(request.id, "accept")}
-                      sx={{ mr: 1 }}
+                      size="small"
                     >
                       <Check />
                     </IconButton>
                     <IconButton
-                      edge="end"
                       color="error"
                       onClick={() => handleRequest(request.id, "reject")}
+                      size="small"
                     >
                       <Close />
                     </IconButton>

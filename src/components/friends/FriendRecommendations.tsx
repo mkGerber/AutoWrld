@@ -245,7 +245,7 @@ export const FriendRecommendations = () => {
                     size="small"
                     sx={{
                       minWidth: 100,
-                      bgcolor: "#232b2b",
+                      bgcolor: "#d4af37",
                       color: "#fff",
                       "&:hover": { bgcolor: "#2a3439" }
                     }}
@@ -283,7 +283,7 @@ export const FriendRecommendations = () => {
                       <Link
                         to={`/profile/${user.id}`}
                         style={{
-                          color: "#232b2b", // gunmetal grey
+                          color: "#fff", // changed from gunmetal grey to white
                           textDecoration: "none",
                           fontWeight: 500,
                           cursor: "pointer"
@@ -299,7 +299,7 @@ export const FriendRecommendations = () => {
                       size="small"
                       sx={{
                         minWidth: 100,
-                        bgcolor: "#232b2b",
+                        bgcolor: "#d4af37",
                         color: "#fff",
                         "&:hover": { bgcolor: "#2a3439" }
                       }}
