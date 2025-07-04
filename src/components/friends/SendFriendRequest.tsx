@@ -50,7 +50,7 @@ export const SendFriendRequest = () => {
 
         if (error) throw error;
 
-        // Filter out the current user from results
+        // filter out the current user from results
         const filteredResults =
           data?.filter((result) => result.id !== user?.id) || [];
 
@@ -74,7 +74,7 @@ export const SendFriendRequest = () => {
     setSuccess(false);
 
     try {
-      // Check if a friendship already exists
+      // check if a friendship already exists
       const { data: existingFriendship, error: checkError } = await supabase
         .from("friendships")
         .select("id, status")
