@@ -1271,6 +1271,54 @@ export const VehicleDetails = () => {
                           </IconButton>
                         )}
                       </Box>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Miles
+                          </Typography>
+                          <Typography variant="body1">
+                            {vehicle.miles ?? "N/A"} miles
+                          </Typography>
+                        </Box>
+                        {isOwner && (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEdit("miles", vehicle.miles)}
+                            sx={{ color: "#d4af37" }}
+                          >
+                            <Edit />
+                          </IconButton>
+                        )}
+                      </Box>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Weight
+                          </Typography>
+                          <Typography variant="body1">
+                            {vehicle.weight ?? "N/A"} lbs
+                          </Typography>
+                        </Box>
+                        {isOwner && (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEdit("weight", vehicle.weight)}
+                            sx={{ color: "#d4af37" }}
+                          >
+                            <Edit />
+                          </IconButton>
+                        )}
+                      </Box>
                     </Box>
                   ) : (
                     <Grid container spacing={2}>
@@ -1372,6 +1420,60 @@ export const VehicleDetails = () => {
                               size="small"
                               onClick={() =>
                                 handleEdit("horsepower", vehicle.horsepower)
+                              }
+                              sx={{ color: "#d4af37" }}
+                            >
+                              <Edit />
+                            </IconButton>
+                          )}
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="subtitle2"
+                              color="text.secondary"
+                            >
+                              Miles
+                            </Typography>
+                            <Typography variant="body1">
+                              {vehicle.miles ?? "N/A"} miles
+                            </Typography>
+                          </Box>
+                          {isOwner && (
+                            <IconButton
+                              size="small"
+                              onClick={() => handleEdit("miles", vehicle.miles)}
+                              sx={{ color: "#d4af37" }}
+                            >
+                              <Edit />
+                            </IconButton>
+                          )}
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <Box sx={{ flex: 1 }}>
+                            <Typography
+                              variant="subtitle2"
+                              color="text.secondary"
+                            >
+                              Weight
+                            </Typography>
+                            <Typography variant="body1">
+                              {vehicle.weight ?? "N/A"} lbs
+                            </Typography>
+                          </Box>
+                          {isOwner && (
+                            <IconButton
+                              size="small"
+                              onClick={() =>
+                                handleEdit("weight", vehicle.weight)
                               }
                               sx={{ color: "#d4af37" }}
                             >

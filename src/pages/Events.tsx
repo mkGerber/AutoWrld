@@ -179,9 +179,15 @@ export const Events = () => {
             variant={mapView ? "outlined" : "contained"}
             onClick={() => setMapView(false)}
             sx={{
-              backgroundColor: !mapView ? "#d4af37" : undefined,
-              color: !mapView ? "#0a0f2c" : undefined,
-              "&:hover": { backgroundColor: !mapView ? "#e4bf47" : undefined },
+              backgroundColor: !mapView
+                ? theme.palette.primary.main
+                : undefined,
+              color: !mapView ? theme.palette.primary.contrastText : undefined,
+              "&:hover": {
+                backgroundColor: !mapView
+                  ? theme.palette.primary.dark || theme.palette.primary.main
+                  : undefined,
+              },
               minWidth: isMobile ? "100%" : 120,
               fontSize: isMobile ? "1rem" : "1.1rem",
               py: isMobile ? 1.2 : 1.5,
@@ -193,9 +199,13 @@ export const Events = () => {
             variant={mapView ? "contained" : "outlined"}
             onClick={() => setMapView(true)}
             sx={{
-              backgroundColor: mapView ? "#d4af37" : undefined,
-              color: mapView ? "#0a0f2c" : undefined,
-              "&:hover": { backgroundColor: mapView ? "#e4bf47" : undefined },
+              backgroundColor: mapView ? theme.palette.primary.main : undefined,
+              color: mapView ? theme.palette.primary.contrastText : undefined,
+              "&:hover": {
+                backgroundColor: mapView
+                  ? theme.palette.primary.dark || theme.palette.primary.main
+                  : undefined,
+              },
               minWidth: isMobile ? "100%" : 120,
               fontSize: isMobile ? "1rem" : "1.1rem",
               py: isMobile ? 1.2 : 1.5,
@@ -208,9 +218,12 @@ export const Events = () => {
             startIcon={<Add />}
             onClick={() => setAddEventOpen(true)}
             sx={{
-              backgroundColor: "#d4af37",
-              color: "#0a0f2c",
-              "&:hover": { backgroundColor: "#e4bf47" },
+              backgroundColor: theme.palette.primary.main,
+              color: theme.palette.primary.contrastText,
+              "&:hover": {
+                backgroundColor:
+                  theme.palette.primary.dark || theme.palette.primary.main,
+              },
               minWidth: isMobile ? "100%" : 140,
               fontSize: isMobile ? "1rem" : "1.1rem",
               py: isMobile ? 1.2 : 1.5,
@@ -278,110 +291,120 @@ export const Events = () => {
       ) : (
         <Grid container spacing={isMobile ? 2 : 3}>
           {events.map((event) => (
-            <Grid item xs={12} sm={6} md={4} key={event.id}>
+            <Grid
+              item
+              key={event.id}
+              xs={12}
+              sm={6}
+              md={4}
+              sx={{ display: "flex", justifyContent: "center" }}
+            >
               <Card
                 sx={{
-                  height: "100%",
+                  width: 320,
+                  height: 420,
                   display: "flex",
                   flexDirection: "column",
+                  justifyContent: "flex-start",
+                  alignItems: "stretch",
+                  boxShadow: 3,
+                  borderRadius: 3,
+                  background: theme.palette.background.paper,
+                  transition: "transform 0.2s",
                   cursor: "pointer",
                   "&:hover": {
                     transform: "translateY(-4px)",
-                    transition: "transform 0.2s ease-in-out",
+                    boxShadow: 6,
                   },
-                  minHeight: isMobile ? 320 : 380,
                 }}
                 onClick={() => handleEventClick(event.id)}
               >
-                <CardMedia
-                  component="img"
-                  height={isMobile ? "140" : "200"}
-                  image={
-                    event.image_url ||
-                    "https://source.unsplash.com/random/800x600/?car-meet"
-                  }
-                  alt={event.title}
-                />
-                <CardContent sx={{ flexGrow: 1, p: isMobile ? 1.5 : 2 }}>
+                {event.image_url ? (
+                  <CardMedia
+                    component="img"
+                    sx={{
+                      height: 140,
+                      width: 320,
+                      objectFit: "cover",
+                      borderTopLeftRadius: 12,
+                      borderTopRightRadius: 12,
+                    }}
+                    image={event.image_url}
+                    alt={event.title}
+                  />
+                ) : (
+                  <Box
+                    sx={{
+                      height: 140,
+                      width: 320,
+                      background: theme.palette.background.default,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderTopLeftRadius: 12,
+                      borderTopRightRadius: 12,
+                      color: theme.palette.text.secondary,
+                      fontSize: 24,
+                      fontWeight: 500,
+                      letterSpacing: 1,
+                    }}
+                  >
+                    No Image
+                  </Box>
+                )}
+                <CardContent
+                  sx={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    minHeight: 0,
+                    p: 2,
+                  }}
+                >
                   <Chip
                     label={event.type}
                     size="small"
-                    sx={{
-                      mb: 1,
-                      fontSize: isMobile ? "0.9rem" : undefined,
-                      height: isMobile ? 22 : 24,
-                    }}
+                    sx={{ mb: 1, fontSize: "0.9rem", height: 22 }}
                     color="primary"
                   />
                   <Typography
                     gutterBottom
-                    variant={isMobile ? "h6" : "h5"}
+                    variant="h6"
                     component="h2"
+                    sx={{ color: theme.palette.text.primary, fontWeight: 700 }}
                   >
                     {event.title}
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    paragraph
-                    sx={{ fontSize: isMobile ? "0.97rem" : undefined }}
-                  >
+                  <Typography variant="body2" color="text.secondary" paragraph>
                     {event.description}
                   </Typography>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                    <CalendarMonth
-                      sx={{
-                        mr: 1,
-                        color: "text.secondary",
-                        fontSize: isMobile ? 18 : 24,
-                      }}
-                    />
-                    <Typography
-                      variant="body2"
-                      sx={{ fontSize: isMobile ? "0.97rem" : undefined }}
-                    >
+                    <CalendarMonth sx={{ mr: 1, color: "text.secondary" }} />
+                    <Typography variant="body2" color="text.secondary">
                       {new Date(event.date).toLocaleDateString()}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                    <LocationOn
-                      sx={{
-                        mr: 1,
-                        color: "text.secondary",
-                        fontSize: isMobile ? 18 : 24,
-                      }}
-                    />
-                    <Typography
-                      variant="body2"
-                      sx={{ fontSize: isMobile ? "0.97rem" : undefined }}
-                    >
+                    <LocationOn sx={{ mr: 1, color: "text.secondary" }} />
+                    <Typography variant="body2" color="text.secondary">
                       {event.location}
                     </Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <People
-                      sx={{
-                        mr: 1,
-                        color: "text.secondary",
-                        fontSize: isMobile ? 18 : 24,
-                      }}
-                    />
-                    <Typography
-                      variant="body2"
-                      sx={{ fontSize: isMobile ? "0.97rem" : undefined }}
-                    >
+                    <People sx={{ mr: 1, color: "text.secondary" }} />
+                    <Typography variant="body2" color="text.secondary">
                       {event.attendees?.[0]?.count || 0} attendees
                       {event.max_attendees && ` / ${event.max_attendees} max`}
                     </Typography>
                   </Box>
                 </CardContent>
-                <CardActions sx={{ p: isMobile ? 1 : undefined }}>
+                <CardActions sx={{ p: 1 }}>
                   <EventRSVP
                     eventId={event.id}
                     maxAttendees={event.max_attendees}
                     currentAttendees={event.attendees?.[0]?.count || 0}
                     onSuccess={() => {
-                      // Refresh events list
                       fetchEvents();
                     }}
                   />

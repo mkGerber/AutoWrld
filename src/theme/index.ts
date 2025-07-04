@@ -42,10 +42,11 @@ export const theme = createTheme({
     surfaceVariant: '#2d303a',
     onSurface: '#f4f4f7',
     onBackground: '#f4f4f7',
-    onPrimary: '#e6c200',
+    onPrimary: '#181a20',
     onSecondary: '#181a20',
     placeholder: '#6c6f7e',
-    backdrop: 'rgba(24, 26, 32, 0.7)',
+    backdrop: 'rgba(20, 21, 26, 0.7)',
+    disabled: '#393a40',
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',

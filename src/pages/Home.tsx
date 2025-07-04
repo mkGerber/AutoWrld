@@ -31,6 +31,7 @@ import {
 } from "@mui/icons-material";
 // @ts-ignore
 import highlightImage from "../assets/Home/highlight.JPG";
+import { useTheme } from "@mui/material/styles";
 
 const featuredVehicles = [
   {
@@ -80,6 +81,7 @@ export const Home = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [featuredVehicles, setFeaturedVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const theme = useTheme();
 
   useEffect(() => {
     const checkProfile = async () => {
@@ -247,8 +249,8 @@ export const Home = () => {
             left: 0,
             right: 0,
             p: 4,
-            background: "linear-gradient(transparent, rgba(0, 0, 0, 0.8))",
-            color: "white",
+            background: `linear-gradient(transparent, ${theme.palette.background.paper})`,
+            color: theme.palette.text.primary,
           }}
         >
           <Typography variant="h3" component="h1" gutterBottom>
@@ -262,9 +264,14 @@ export const Home = () => {
             size="large"
             endIcon={<ArrowForward />}
             sx={{
-              backgroundColor: "#d4af37",
-              color: "#0a0f2c",
-              "&:hover": { backgroundColor: "#e4bf47" },
+              backgroundColor: theme.palette.primary.main,
+              color: theme.palette.onPrimary
+                ? theme.palette.onPrimary
+                : theme.palette.background.default,
+              "&:hover": {
+                backgroundColor:
+                  theme.palette.primary.dark || theme.palette.primary.main,
+              },
             }}
             onClick={() => navigate("/events")}
           >
@@ -278,7 +285,7 @@ export const Home = () => {
         <Typography
           variant="h4"
           component="h2"
-          sx={{ color: "#d4af37", mb: 3 }}
+          sx={{ color: theme.palette.primary.main, mb: 3 }}
         >
           Featured Vehicles
         </Typography>
@@ -355,7 +362,7 @@ export const Home = () => {
         <Typography
           variant="h4"
           component="h2"
-          sx={{ color: "#d4af37", mb: 3 }}
+          sx={{ color: theme.palette.primary.main, mb: 3 }}
         >
           Upcoming Events
         </Typography>
@@ -375,9 +382,14 @@ export const Home = () => {
               variant="contained"
               sx={{
                 mt: 2,
-                backgroundColor: "#d4af37",
-                color: "#0a0f2c",
-                "&:hover": { backgroundColor: "#e4bf47" },
+                backgroundColor: theme.palette.primary.main,
+                color: theme.palette.onPrimary
+                  ? theme.palette.onPrimary
+                  : theme.palette.background.default,
+                "&:hover": {
+                  backgroundColor:
+                    theme.palette.primary.dark || theme.palette.primary.main,
+                },
               }}
               onClick={() => navigate("/events")}
             >
@@ -387,54 +399,122 @@ export const Home = () => {
         ) : (
           <Grid container spacing={3}>
             {upcomingEvents.map((event) => (
-              <Grid key={event.id} item xs={12} md={6}>
+              <Grid
+                key={event.id}
+                item
+                xs={12}
+                md={6}
+                lg={4}
+                sx={{ display: "flex", justifyContent: "center" }}
+              >
                 <Card
                   sx={{
+                    width: 320,
+                    height: 420,
                     display: "flex",
-                    height: "100%",
+                    flexDirection: "column",
+                    justifyContent: "flex-start",
+                    alignItems: "stretch",
+                    boxShadow: 3,
+                    borderRadius: 3,
+                    background: theme.palette.background.paper,
                     transition: "transform 0.2s",
+                    cursor: "pointer",
                     "&:hover": {
                       transform: "translateY(-4px)",
+                      boxShadow: 6,
                     },
-                    cursor: "pointer",
                   }}
                   onClick={() => navigate(`/events/${event.id}`)}
                 >
-                  <CardMedia
-                    component="img"
-                    sx={{ width: 200 }}
-                    image={
-                      event.image_url ||
-                      "https://source.unsplash.com/random/800x600/?car-meet"
-                    }
-                    alt={event.title}
-                  />
-                  <CardContent sx={{ flex: 1 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                      <Avatar
-                        src={event.created_by?.avatar_url}
-                        sx={{ width: 24, height: 24, mr: 1 }}
-                      />
-                      <Typography variant="body2" color="text.secondary">
-                        {event.created_by?.name || "Unknown Creator"}
+                  {event.image_url ? (
+                    <CardMedia
+                      component="img"
+                      sx={{
+                        height: 140,
+                        width: 320,
+                        objectFit: "cover",
+                        borderTopLeftRadius: 12,
+                        borderTopRightRadius: 12,
+                      }}
+                      image={event.image_url}
+                      alt={event.title}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        height: 140,
+                        width: 320,
+                        background: theme.palette.background.default,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderTopLeftRadius: 12,
+                        borderTopRightRadius: 12,
+                        color: theme.palette.text.secondary,
+                        fontSize: 24,
+                        fontWeight: 500,
+                        letterSpacing: 1,
+                      }}
+                    >
+                      No Image
+                    </Box>
+                  )}
+                  <CardContent
+                    sx={{
+                      flex: 1,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      minHeight: 0,
+                      p: 2,
+                    }}
+                  >
+                    <Box>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                      >
+                        <Avatar
+                          src={event.created_by?.avatar_url}
+                          sx={{ width: 24, height: 24, mr: 1 }}
+                        />
+                        <Typography variant="body2" color="text.secondary">
+                          {event.created_by?.name || "Unknown Creator"}
+                        </Typography>
+                      </Box>
+                      <Typography
+                        variant="h6"
+                        component="h3"
+                        gutterBottom
+                        sx={{
+                          color: theme.palette.text.primary,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {event.title}
                       </Typography>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                      >
+                        <CalendarMonth
+                          sx={{ mr: 1, color: "text.secondary" }}
+                        />
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(event.date).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                      >
+                        <LocationOn sx={{ mr: 1, color: "text.secondary" }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {event.location}
+                        </Typography>
+                      </Box>
                     </Box>
-                    <Typography variant="h6" component="h3" gutterBottom>
-                      {event.title}
-                    </Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                      <CalendarMonth sx={{ mr: 1, color: "text.secondary" }} />
-                      <Typography variant="body2">
-                        {new Date(event.date).toLocaleDateString()}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                      <LocationOn sx={{ mr: 1, color: "text.secondary" }} />
-                      <Typography variant="body2">{event.location}</Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
                       <People sx={{ mr: 1, color: "text.secondary" }} />
-                      <Typography variant="body2">
+                      <Typography variant="body2" color="text.secondary">
                         {event.attendees?.[0]?.count || 0} attendees
                         {event.max_attendees && ` / ${event.max_attendees} max`}
                       </Typography>
@@ -452,7 +532,7 @@ export const Home = () => {
         <Typography
           variant="h4"
           component="h2"
-          sx={{ color: "#d4af37", mb: 3 }}
+          sx={{ color: theme.palette.primary.main, mb: 3 }}
         >
           Trending Topics
         </Typography>
@@ -462,10 +542,10 @@ export const Home = () => {
               key={topic}
               label={topic}
               sx={{
-                backgroundColor: "rgba(212, 175, 55, 0.1)",
-                color: "#d4af37",
+                backgroundColor: theme.palette.background.paper,
+                color: theme.palette.primary.main,
                 "&:hover": {
-                  backgroundColor: "rgba(212, 175, 55, 0.2)",
+                  backgroundColor: theme.palette.background.default,
                 },
               }}
             />

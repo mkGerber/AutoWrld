@@ -1,17 +1,5 @@
-import { useState } from "react";
-import {
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  Typography,
-} from "@mui/material";
+import { useEffect, useState } from "react";
+import { Button } from "@mui/material";
 import { supabase } from "../../services/supabase/client";
 import { useAuth } from "../../context/AuthContext";
 
@@ -29,131 +17,66 @@ export const EventRSVP = ({
   onSuccess,
 }: EventRSVPProps) => {
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [status, setStatus] = useState<"attending" | "maybe" | "not_attending">(
-    "attending"
-  );
   const [loading, setLoading] = useState(false);
+  const [isRSVPd, setIsRSVPd] = useState(false);
 
-  const handleRSVP = async () => {
-    if (!user) return;
-    setLoading(true);
-
-    try {
-      // Check if user already has an RSVP
-      const { data: existingRSVP } = await supabase
+  useEffect(() => {
+    const checkRSVP = async () => {
+      if (!user) return;
+      const { data } = await supabase
         .from("event_attendees")
-        .select("id, status")
+        .select("id")
         .eq("event_id", eventId)
         .eq("user_id", user.id)
         .single();
+      setIsRSVPd(!!data);
+    };
+    checkRSVP();
+  }, [user, eventId]);
 
-      if (existingRSVP) {
-        // Update existing RSVP
-        const { error } = await supabase
+  const handleToggleRSVP = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      if (isRSVPd) {
+        await supabase
           .from("event_attendees")
-          .update({ status })
-          .eq("id", existingRSVP.id);
-
-        if (error) throw error;
+          .delete()
+          .eq("event_id", eventId)
+          .eq("user_id", user.id);
       } else {
-        // Check if event is full
         if (maxAttendees && currentAttendees >= maxAttendees) {
-          throw new Error("Event is full");
+          setLoading(false);
+          return;
         }
-
-        // Create new RSVP
-        const { error } = await supabase.from("event_attendees").insert({
+        await supabase.from("event_attendees").insert({
           event_id: eventId,
           user_id: user.id,
-          status,
+          status: "attending",
         });
-
-        if (error) throw error;
       }
-
+      setIsRSVPd(!isRSVPd);
       onSuccess();
-      setOpen(false);
     } catch (error) {
-      console.error("Error updating RSVP:", error);
+      // Silently fail
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <>
-      <Button
-        variant="contained"
-        fullWidth
-        onClick={() => setOpen(true)}
-        sx={{
-          backgroundColor: "#d4af37",
-          color: "#0a0f2c",
-          "&:hover": { backgroundColor: "#e4bf47" },
-        }}
-      >
-        RSVP Now
-      </Button>
-
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>RSVP to Event</DialogTitle>
-        <DialogContent>
-          <FormControl component="fieldset" sx={{ mt: 2 }}>
-            <FormLabel component="legend">Your Attendance Status</FormLabel>
-            <RadioGroup
-              value={status}
-              onChange={(e) => setStatus(e.target.value as any)}
-            >
-              <FormControlLabel
-                value="attending"
-                control={<Radio />}
-                label="I'm Attending"
-              />
-              <FormControlLabel
-                value="maybe"
-                control={<Radio />}
-                label="Maybe"
-              />
-              <FormControlLabel
-                value="not_attending"
-                control={<Radio />}
-                label="Not Attending"
-              />
-            </RadioGroup>
-          </FormControl>
-          {maxAttendees && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              {currentAttendees} of {maxAttendees} spots filled
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setOpen(false)}
-            sx={{ color: "text.secondary" }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleRSVP}
-            variant="contained"
-            disabled={loading}
-            sx={{
-              backgroundColor: "#d4af37",
-              color: "#0a0f2c",
-              "&:hover": { backgroundColor: "#e4bf47" },
-            }}
-          >
-            {loading ? "Updating..." : "Confirm RSVP"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
+    <Button
+      variant="contained"
+      fullWidth
+      onClick={handleToggleRSVP}
+      disabled={loading}
+      sx={{
+        backgroundColor: isRSVPd ? "#b0b3b8" : "#d4af37",
+        color: isRSVPd ? "#23262f" : "#0a0f2c",
+        "&:hover": { backgroundColor: isRSVPd ? "#a0a3a8" : "#e4bf47" },
+      }}
+    >
+      {isRSVPd ? "Cancel RSVP" : "RSVP"}
+    </Button>
   );
 };

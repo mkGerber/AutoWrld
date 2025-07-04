@@ -74,60 +74,61 @@ export const EventDetails = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+  // Move fetchEvent outside useEffect so it can be called from RSVP
+  const fetchEvent = async () => {
+    setLoading(true);
+    try {
+      // Fetch event with creator profile
+      const { data: eventData, error: eventError } = await supabase
+        .from("events")
+        .select(
+          `
+          *,
+          created_by:profiles(name, avatar_url)
+        `
+        )
+        .eq("id", id)
+        .single();
+
+      if (eventError) throw eventError;
+
+      // Fetch attendee count
+      const { count, error: countError } = await supabase
+        .from("event_attendees")
+        .select("*", { count: "exact", head: true })
+        .eq("event_id", id);
+
+      if (countError) throw countError;
+
+      setEvent({
+        ...eventData,
+        attendees: [{ count: count || 0 }],
+      });
+
+      // Fetch attendee details
+      const { data: attendeeData, error: attendeeError } = await supabase
+        .from("event_attendees")
+        .select(
+          `
+          *,
+          user:profiles!inner(name, avatar_url)
+        `
+        )
+        .eq("event_id", id)
+        .eq("status", "attending")
+        .order("created_at", { ascending: true });
+
+      if (attendeeError) throw attendeeError;
+      setAttendees(attendeeData || []);
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      navigate("/events");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchEvent = async () => {
-      setLoading(true);
-      try {
-        // Fetch event with creator profile
-        const { data: eventData, error: eventError } = await supabase
-          .from("events")
-          .select(
-            `
-            *,
-            created_by:profiles(name, avatar_url)
-          `
-          )
-          .eq("id", id)
-          .single();
-
-        if (eventError) throw eventError;
-
-        // Fetch attendee count
-        const { count, error: countError } = await supabase
-          .from("event_attendees")
-          .select("*", { count: "exact", head: true })
-          .eq("event_id", id);
-
-        if (countError) throw countError;
-
-        setEvent({
-          ...eventData,
-          attendees: [{ count: count || 0 }],
-        });
-
-        // Fetch attendee details
-        const { data: attendeeData, error: attendeeError } = await supabase
-          .from("event_attendees")
-          .select(
-            `
-            *,
-            user:profiles!inner(name, avatar_url)
-          `
-          )
-          .eq("event_id", id)
-          .eq("status", "attending")
-          .order("created_at", { ascending: true });
-
-        if (attendeeError) throw attendeeError;
-        setAttendees(attendeeData || []);
-      } catch (error) {
-        console.error("Error fetching event:", error);
-        navigate("/events");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchEvent();
   }, [id, navigate]);
 
@@ -365,10 +366,7 @@ export const EventDetails = () => {
               eventId={event.id}
               maxAttendees={event.max_attendees}
               currentAttendees={event.attendees?.[0]?.count || 0}
-              onSuccess={() => {
-                // Refresh event data
-                fetchEvent();
-              }}
+              onSuccess={fetchEvent}
             />
           </Paper>
 
