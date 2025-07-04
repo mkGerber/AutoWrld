@@ -16,6 +16,7 @@ import {
 import { PersonRemove } from "@mui/icons-material";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabase/client";
+import { Link } from "react-router-dom";
 
 interface Friend {
   id: string;
@@ -170,7 +171,19 @@ export const FriendsList = () => {
                 />
               </ListItemAvatar>
               <ListItemText
-                primary={friend.profile.name}
+                primary={
+                  <Link
+                    to={`/profile/${friend.profile.id}`}
+                    style={{
+                      color: "#fff",
+                      textDecoration: "none",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {friend.profile.name}
+                  </Link>
+                }
                 secondary={`Friends since ${new Date(
                   friend.created_at
                 ).toLocaleDateString()}`}

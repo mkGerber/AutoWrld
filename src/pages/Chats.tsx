@@ -127,6 +127,11 @@ export const Chats = () => {
     }
   };
 
+  const handleProfileClick = (userId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent triggering the group card click
+    navigate(`/profile/${userId}`);
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" p={3}>
@@ -209,14 +214,54 @@ export const Chats = () => {
                 >
                   {group.description}
                 </Typography>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  align="center"
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1,
+                    flexWrap: "wrap",
+                  }}
                 >
-                  {group.member_count} members • Created by{" "}
-                  {group.created_by.name}
-                </Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    align="center"
+                  >
+                    {group.member_count} members • Created by
+                  </Typography>
+                  <Avatar
+                    src={group.created_by.avatar_url || undefined}
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      "&:hover": {
+                        opacity: 0.7,
+                        transform: "scale(1.1)",
+                      },
+                    }}
+                    onClick={(e) => handleProfileClick(group.created_by.id, e)}
+                  >
+                    {!group.created_by.avatar_url && group.created_by.name?.charAt(0)}
+                  </Avatar>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    onClick={(e) => handleProfileClick(group.created_by.id, e)}
+                    sx={{
+                      cursor: "pointer",
+                      transition: "color 0.2s",
+                      "&:hover": {
+                        color: "#d4af37",
+                        textDecoration: "underline",
+                      },
+                    }}
+                  >
+                    {group.created_by.name}
+                  </Typography>
+                </Box>
               </Paper>
             </Grid>
           ))}

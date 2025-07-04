@@ -157,6 +157,11 @@ export const Discover = () => {
     navigate(`/vehicle/${vehicleId}`);
   };
 
+  const handleProfileClick = (userId: string, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent triggering the vehicle card click
+    navigate(`/profile/${userId}`);
+  };
+
   if (loading) {
     return (
       <Box
@@ -530,7 +535,15 @@ export const Discover = () => {
                   <Typography
                     variant="subtitle2"
                     color="text.secondary"
-                    sx={{ fontSize: isMobile ? "0.95rem" : undefined }}
+                    onClick={(e) => handleProfileClick(vehicle.user_id, e)}
+                    sx={{ 
+                      fontSize: isMobile ? "0.95rem" : undefined,
+                      cursor: "pointer",
+                      "&:hover": {
+                        color: "#d4af37",
+                        textDecoration: "underline",
+                      },
+                    }}
                   >
                     {vehicle.owner}
                   </Typography>

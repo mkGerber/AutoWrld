@@ -32,7 +32,7 @@ import {
   Favorite,
 } from "@mui/icons-material";
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "../services/supabase/client";
 import { useAuth } from "../context/AuthContext";
 import { EventRSVP } from "../components/events/EventRSVP";
@@ -81,12 +81,10 @@ export const EventDetails = () => {
       // Fetch event with creator profile
       const { data: eventData, error: eventError } = await supabase
         .from("events")
-        .select(
-          `
+        .select(`
           *,
-          created_by:profiles(name, avatar_url)
-        `
-        )
+          created_by:profiles(id, name, avatar_url)
+        `)
         .eq("id", id)
         .single();
 
@@ -108,12 +106,10 @@ export const EventDetails = () => {
       // Fetch attendee details
       const { data: attendeeData, error: attendeeError } = await supabase
         .from("event_attendees")
-        .select(
-          `
+        .select(`
           *,
-          user:profiles!inner(name, avatar_url)
-        `
-        )
+          user:profiles!inner(id, name, avatar_url)
+        `)
         .eq("event_id", id)
         .eq("status", "attending")
         .order("created_at", { ascending: true });
@@ -243,12 +239,27 @@ export const EventDetails = () => {
                   height: isMobile ? 32 : 40,
                 }}
               />
-              <Typography
-                variant={isMobile ? "body2" : "subtitle1"}
-                color="text.secondary"
-              >
-                {event.created_by?.name || "Unknown Creator"}
-              </Typography>
+              {event.created_by?.id ? (
+                <Link
+                  to={`/profile/${event.created_by.id}`}
+                  style={{
+                    color: "#fff",
+                    textDecoration: "none",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    fontSize: isMobile ? "0.95rem" : "1rem",
+                  }}
+                >
+                  {event.created_by.name}
+                </Link>
+              ) : (
+                <Typography
+                  variant={isMobile ? "body2" : "subtitle1"}
+                  color="text.secondary"
+                >
+                  Unknown Creator
+                </Typography>
+              )}
             </Box>
           </Box>
           <Chip
@@ -462,11 +473,29 @@ export const EventDetails = () => {
                               }}
                             />
                             <Box>
-                              <Typography
-                                variant={isMobile ? "body2" : "subtitle1"}
-                              >
-                                {attendee.user?.name || "Unknown User"}
-                              </Typography>
+                              {attendee.user?.id ? (
+                                <Link
+                                  to={`/profile/${attendee.user.id}`}
+                                  style={{
+                                    color: "#fff",
+                                    textDecoration: "none",
+                                    fontWeight: 500,
+                                    cursor: "pointer",
+                                    fontSize: isMobile ? "0.95rem" : "1rem",
+                                    display: "inline-block",
+                                    marginBottom: 2,
+                                  }}
+                                >
+                                  {attendee.user?.name || "Unknown User"}
+                                </Link>
+                              ) : (
+                                <Typography
+                                  variant={isMobile ? "body2" : "subtitle1"}
+                                  color="text.secondary"
+                                >
+                                  Unknown User
+                                </Typography>
+                              )}
                               <Typography
                                 variant="body2"
                                 color="text.secondary"

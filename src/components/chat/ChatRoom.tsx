@@ -108,6 +108,11 @@ export const ChatRoom = () => {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
 
+  const handleProfileClick = (userId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    navigate(`/profile/${userId}`);
+  };
+
   const fetchGroup = async () => {
     if (!id) return;
 
@@ -783,6 +788,13 @@ export const ChatRoom = () => {
                       <Avatar
                         src={message.sender.avatar_url}
                         alt={message.sender.name}
+                        onClick={(e) => handleProfileClick(message.sender.id, e)}
+                        sx={{
+                          cursor: "pointer",
+                          "&:hover": {
+                            opacity: 0.8,
+                          },
+                        }}
                       />
                     </Badge>
                   </ListItemAvatar>

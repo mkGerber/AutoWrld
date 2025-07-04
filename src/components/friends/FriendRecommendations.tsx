@@ -15,6 +15,7 @@ import {
 } from "@mui/material";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabase/client";
+import { Link } from "react-router-dom";
 
 interface User {
   id: string;
@@ -223,7 +224,19 @@ export const FriendRecommendations = () => {
                   <Avatar src={rec.avatar_url} alt={rec.name} />
                 </ListItemAvatar>
                 <ListItemText
-                  primary={rec.name}
+                  primary={
+                    <Link
+                      to={`/profile/${rec.id}`}
+                      style={{
+                        color: "#fff", 
+                        textDecoration: "none",
+                        fontWeight: 500,
+                        cursor: "pointer"
+                      }}
+                    >
+                      {rec.name}
+                    </Link>
+                  }
                   secondary={`${rec.mutualCount} mutual friend${rec.mutualCount && rec.mutualCount > 1 ? "s" : ""}`}
                 />
                 <ListItemSecondaryAction>
@@ -265,7 +278,21 @@ export const FriendRecommendations = () => {
                   <ListItemAvatar>
                     <Avatar src={user.avatar_url} alt={user.name} />
                   </ListItemAvatar>
-                  <ListItemText primary={user.name} />
+                  <ListItemText
+                    primary={
+                      <Link
+                        to={`/profile/${user.id}`}
+                        style={{
+                          color: "#232b2b", // gunmetal grey
+                          textDecoration: "none",
+                          fontWeight: 500,
+                          cursor: "pointer"
+                        }}
+                      >
+                        {user.name}
+                      </Link>
+                    }
+                  />
                   <ListItemSecondaryAction>
                     <Button
                       variant="contained"

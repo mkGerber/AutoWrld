@@ -24,6 +24,7 @@ import { useAuth } from "../context/AuthContext";
 import MobileStepper from "@mui/material/MobileStepper";
 import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
+import { useNavigate } from "react-router-dom";
 
 export const Feed = () => {
   const { user } = useAuth();
@@ -38,6 +39,7 @@ export const Feed = () => {
   const [comments, setComments] = useState<any[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [imageStep, setImageStep] = useState<{ [postId: string]: number }>({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPosts();
@@ -48,7 +50,7 @@ export const Feed = () => {
     try {
       const { data, error } = await supabase
         .from("posts")
-        .select(`*, user:profiles(name, avatar_url)`)
+        .select(`*, user:profiles(id, name, avatar_url)`) // <-- add id here
         .order("created_at", { ascending: false });
       if (error) throw error;
       setPosts(data || []);
@@ -63,7 +65,7 @@ export const Feed = () => {
     setCommentsLoading(true);
     const { data, error } = await supabase
       .from("comments")
-      .select("id, content, created_at, user:profiles(name, avatar_url)")
+      .select("id, content, created_at, user:profiles(id, name, avatar_url)") // <-- add id here
       .eq("post_id", postId)
       .order("created_at", { ascending: false });
     setComments(error ? [] : data || []);
@@ -219,7 +221,20 @@ export const Feed = () => {
                 <CardContent>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                     <Avatar src={post.user?.avatar_url} sx={{ mr: 1 }} />
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        textDecoration: "none",
+                        "&:hover": {
+                          textDecoration: "underline",
+                        },
+                      }}
+                      onClick={() =>
+                        post.user?.id && navigate(`/profile/${post.user.id}`)
+                      }
+                    >
                       {post.user?.name || "Anonymous"}
                     </Typography>
                     <Typography
@@ -305,7 +320,20 @@ export const Feed = () => {
                     alt={comment.user?.name}
                   />
                   <Box>
-                    <Typography variant="subtitle2">
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        textDecoration: "none",
+                        "&:hover": {
+                          textDecoration: "underline",
+                        },
+                      }}
+                      onClick={() =>
+                        comment.user?.id && navigate(`/profile/${comment.user.id}`)
+                      }
+                    >
                       {comment.user?.name || "Anonymous"}
                     </Typography>
                     <Typography
