@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { supabase } from "../../services/supabase/client";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "@mui/material/styles";
 
 interface VehicleCommentsProps {
   vehicleId: string;
@@ -30,6 +31,7 @@ const VehicleComments = ({
   vehicleId,
   onCommentChange,
 }: VehicleCommentsProps) => {
+  const theme = useTheme();
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +100,8 @@ const VehicleComments = ({
                 display: "flex",
                 gap: 2,
                 alignItems: "flex-start",
-                background: "rgba(30,30,40,0.98)",
+                backgroundColor: theme.palette.background.paper,
+                color: theme.palette.text.primary,
               }}
             >
               <Avatar src={comment.user?.avatar_url} alt={comment.user?.name} />
@@ -134,11 +137,15 @@ const VehicleComments = ({
           <Button
             variant="contained"
             sx={{
-              backgroundColor: "#d4af37",
-              color: "#0a0f2c",
+              backgroundColor: theme.palette.primary.main,
+              color: theme.palette.primary.contrastText,
               fontWeight: 600,
               height: "fit-content",
               alignSelf: "flex-end",
+              "&:hover": {
+                backgroundColor:
+                  theme.palette.primary.dark || theme.palette.primary.main,
+              },
             }}
             onClick={handleAddComment}
             disabled={posting || !newComment.trim()}
