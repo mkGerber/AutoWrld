@@ -70,7 +70,6 @@ export const Garage = () => {
             : typeof vehicle.images === "string" && vehicle.images.length > 0
             ? [vehicle.images]
             : [],
-          status: vehicle.type?.toLowerCase().replace(" ", "") ?? "",
           buildProgress: 0,
           owner: {
             name: user.user_metadata?.full_name || "Anonymous",
