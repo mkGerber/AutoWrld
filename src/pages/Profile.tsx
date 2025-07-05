@@ -470,7 +470,6 @@ export const Profile = () => {
             : typeof vehicle.images === "string" && vehicle.images.length > 0
             ? [vehicle.images]
             : [],
-          status: vehicle.type?.toLowerCase().replace(" ", "") ?? "",
           modifications: vehicle.modifications || [],
           horsepower: vehicle.horsepower || 0,
         }));
