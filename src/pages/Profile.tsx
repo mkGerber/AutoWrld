@@ -72,17 +72,20 @@ export const Profile = () => {
     message: string;
     severity: "success" | "error";
   }>({ open: false, message: "", severity: "success" });
-  const [friendshipStatus, setFriendshipStatus] = useState<
-    "none" | "pending" | "friends"
-  >("none");
-  const [updatingFriendship, setUpdatingFriendship] = useState(false);
+  const [followStatus, setFollowStatus] = useState<
+    "following" | "not-following"
+  >("not-following");
+  const [updatingFollow, setUpdatingFollow] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [friends, setFriends] = useState<any[]>([]);
-  const [loadingFriends, setLoadingFriends] = useState(true);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [loadingFollows, setLoadingFollows] = useState(true);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
   const [loadingEvents, setLoadingEvents] = useState(true);
+
+  const isOwnProfile = !userId || userId === user?.id;
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -112,70 +115,63 @@ export const Profile = () => {
   }, [user, userId]);
 
   useEffect(() => {
-    const checkFriendshipStatus = async () => {
+    const checkFollowStatus = async () => {
       if (!user || !userId || user.id === userId) return;
 
       try {
-        // Check if there's an existing friendship
-        const { data: existingFriendship, error } = await supabase
-          .from("friendships")
-          .select("status")
-          .or(
-            `and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`
-          )
+        // Check if current user is following the target user
+        const { data: followData, error } = await supabase
+          .from("follows")
+          .select("id")
+          .eq("follower_id", user.id)
+          .eq("followed_id", userId)
           .maybeSingle();
 
         if (error) throw error;
 
-        if (existingFriendship) {
-          setFriendshipStatus(
-            existingFriendship.status === "accepted" ? "friends" : "pending"
-          );
-        } else {
-          setFriendshipStatus("none");
-        }
+        setFollowStatus(followData ? "following" : "not-following");
       } catch (err) {
-        console.error("Error checking friendship status:", err);
+        console.error("Error checking follow status:", err);
       }
     };
 
-    checkFriendshipStatus();
+    checkFollowStatus();
   }, [user, userId]);
 
-  const handleFriendRequest = async () => {
+  const handleFollowToggle = async () => {
     if (!user || !userId || user.id === userId) return;
-    setUpdatingFriendship(true);
+    setUpdatingFollow(true);
 
     try {
-      if (friendshipStatus === "none") {
-        // Send friend request
-        const { error } = await supabase.from("friendships").insert({
-          sender_id: user.id,
-          receiver_id: userId,
-          status: "pending",
+      if (followStatus === "not-following") {
+        // Follow user
+        const { error } = await supabase.from("follows").insert({
+          follower_id: user.id,
+          followed_id: userId,
         });
 
         if (error) throw error;
-        setFriendshipStatus("pending");
+        setFollowStatus("following");
+        setFollowersCount((prev) => prev + 1);
         setSnackbar({
           open: true,
-          message: "Friend request sent!",
+          message: "Successfully followed user!",
           severity: "success",
         });
-      } else if (friendshipStatus === "pending") {
-        // Cancel friend request
+      } else {
+        // Unfollow user
         const { error } = await supabase
-          .from("friendships")
+          .from("follows")
           .delete()
-          .or(
-            `and(sender_id.eq.${user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${user.id})`
-          );
+          .eq("follower_id", user.id)
+          .eq("followed_id", userId);
 
         if (error) throw error;
-        setFriendshipStatus("none");
+        setFollowStatus("not-following");
+        setFollowersCount((prev) => prev - 1);
         setSnackbar({
           open: true,
-          message: "Friend request cancelled",
+          message: "Unfollowed user",
           severity: "success",
         });
       }
@@ -186,7 +182,7 @@ export const Profile = () => {
         severity: "error",
       });
     } finally {
-      setUpdatingFriendship(false);
+      setUpdatingFollow(false);
     }
   };
 
@@ -198,6 +194,7 @@ export const Profile = () => {
     setPreviewBanner(profile?.banner_url || "");
     setEditAvatar(null);
     setEditBanner(null);
+    setImageError(null);
     setEditOpen(true);
   };
 
@@ -206,246 +203,153 @@ export const Profile = () => {
   };
 
   const handleEditSave = async () => {
+    if (!user) return;
     setSaving(true);
-    let avatarUrl = profile?.avatar_url;
-    let bannerUrl = profile?.banner_url;
+    try {
+      let avatarUrl = profile?.avatar_url || "";
+      let bannerUrl = profile?.banner_url || "";
 
-    // Delete old avatar if uploading a new one
-    if (editAvatar && profile?.avatar_url) {
-      try {
-        const marker = "/avatars/";
-        const idx = profile.avatar_url.indexOf(marker);
-        if (idx !== -1) {
-          const filePath = profile.avatar_url.substring(idx + marker.length);
-          await supabase.storage.from("avatars").remove([filePath]);
-        }
-      } catch (err) {
-        // Ignore error, continue
+      // Upload avatar if changed
+      if (editAvatar) {
+        const avatarFileName = `avatars/${user.id}/${Date.now()}_avatar.jpg`;
+        const { error: avatarError } = await supabase.storage
+          .from("profile-images")
+          .upload(avatarFileName, editAvatar);
+        if (avatarError) throw avatarError;
+        avatarUrl = `${
+          supabase.storage.from("profile-images").getPublicUrl(avatarFileName)
+            .data.publicUrl
+        }`;
       }
-    }
 
-    // If there's a new avatar file, upload it
-    if (editAvatar) {
-      const fileExt = editAvatar.name.split(".").pop();
-      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, editAvatar);
-      if (uploadError) {
-        setSnackbar({
-          open: true,
-          message: uploadError.message,
-          severity: "error",
-        });
-        setSaving(false);
-        return;
+      // Upload banner if changed
+      if (editBanner) {
+        const bannerFileName = `banners/${user.id}/${Date.now()}_banner.jpg`;
+        const { error: bannerError } = await supabase.storage
+          .from("profile-images")
+          .upload(bannerFileName, editBanner);
+        if (bannerError) throw bannerError;
+        bannerUrl = `${
+          supabase.storage.from("profile-images").getPublicUrl(bannerFileName)
+            .data.publicUrl
+        }`;
       }
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("avatars").getPublicUrl(fileName);
-      avatarUrl = publicUrl;
-    }
 
-    // Delete old banner if uploading a new one
-    if (editBanner && profile?.banner_url) {
-      try {
-        const marker = "/banners/";
-        const idx = profile.banner_url.indexOf(marker);
-        if (idx !== -1) {
-          const filePath = profile.banner_url.substring(idx + marker.length);
-          await supabase.storage.from("banners").remove([filePath]);
-        }
-      } catch (err) {
-        // Ignore error, continue
-      }
-    }
+      // Update profile
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          name: editName,
+          username: editUsername,
+          bio: editBio,
+          avatar_url: avatarUrl,
+          banner_url: bannerUrl,
+        })
+        .eq("id", user.id);
 
-    // If there's a new banner file, upload it
-    if (editBanner) {
-      const fileExt = editBanner.name.split(".").pop();
-      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("banners")
-        .upload(fileName, editBanner);
-      if (uploadError) {
-        setSnackbar({
-          open: true,
-          message: uploadError.message,
-          severity: "error",
-        });
-        setSaving(false);
-        return;
-      }
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("banners").getPublicUrl(fileName);
-      bannerUrl = publicUrl;
-    }
+      if (error) throw error;
 
-    // Update the profile with the new avatar and banner URLs
-    const { error } = await supabase
-      .from("profiles")
-      .update({
+      setProfile({
+        ...profile,
         name: editName,
         username: editUsername,
         bio: editBio,
         avatar_url: avatarUrl,
         banner_url: bannerUrl,
-      })
-      .eq("id", user?.id);
+      });
 
-    setSaving(false);
-    if (error) {
-      setSnackbar({ open: true, message: error.message, severity: "error" });
-    } else {
       setSnackbar({
         open: true,
-        message: "Profile updated!",
+        message: "Profile updated successfully!",
         severity: "success",
       });
-      // Re-fetch the profile to ensure the latest data is loaded
-      const { data: refreshedProfile } = await supabase
-        .from("profiles")
-        .select("name, username, bio, email, avatar_url, banner_url")
-        .eq("id", user?.id)
-        .maybeSingle();
-      if (refreshedProfile) {
-        setProfile(refreshedProfile);
-      }
       setEditOpen(false);
+    } catch (err: any) {
+      setSnackbar({
+        open: true,
+        message: err.message || "Failed to update profile",
+        severity: "error",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await supabase.auth.signOut();
       navigate("/login");
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Sign out error:", error);
     }
   };
 
-  // Helper function to check if viewing own profile
-  const isOwnProfile = !userId || userId === user?.id;
-
-  // Banner upload handler
   const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
       setImageError(null);
-      if (file.size > 30 * 1024 * 1024) {
-        setImageError("Banner image is too large (max 30MB)");
-        return;
-      }
-      try {
-        const compressed = await imageCompression(file, {
-          maxSizeMB: 2,
-          maxWidthOrHeight: 2000,
-          useWebWorker: true,
-        });
-        setEditBanner(compressed);
-        setPreviewBanner(URL.createObjectURL(compressed));
-      } catch (err) {
-        setImageError("Failed to compress banner image");
-      }
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+      });
+      setEditBanner(compressed);
+      setPreviewBanner(URL.createObjectURL(compressed));
+    } catch (err) {
+      setImageError("Failed to compress banner image");
     }
   };
 
-  // Avatar upload handler
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
       setImageError(null);
-      if (file.size > 20 * 1024 * 1024) {
-        setImageError("Profile photo is too large (max 20MB)");
-        return;
-      }
-      try {
-        const compressed = await imageCompression(file, {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 800,
-          useWebWorker: true,
-        });
-        setEditAvatar(compressed);
-        setPreviewAvatar(URL.createObjectURL(compressed));
-      } catch (err) {
-        setImageError("Failed to compress profile photo");
-      }
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 400,
+      });
+      setEditAvatar(compressed);
+      setPreviewAvatar(URL.createObjectURL(compressed));
+    } catch (err) {
+      setImageError("Failed to compress profile photo");
     }
   };
 
   useEffect(() => {
-    const fetchFriends = async () => {
+    const fetchFollows = async () => {
       const targetUserId = userId || user?.id;
       if (!targetUserId) {
-        setLoadingFriends(false);
+        setLoadingFollows(false);
         return;
       }
 
-      setLoadingFriends(true);
+      setLoadingFollows(true);
       try {
-        // Fetch friends where user is receiver
-        const { data: receivedFriends, error: receivedError } = await supabase
-          .from("friendships")
-          .select(
-            `
-            id,
-            status,
-            created_at,
-            profile:sender_id (
-              id,
-              name,
-              avatar_url,
-              username
-            )
-          `
-          )
-          .eq("receiver_id", targetUserId)
-          .eq("status", "accepted");
+        // Get following count
+        const { count: followingCount } = await supabase
+          .from("follows")
+          .select("*", { count: "exact", head: true })
+          .eq("follower_id", targetUserId);
+        setFollowingCount(followingCount || 0);
 
-        if (receivedError) throw receivedError;
-
-        // Fetch friends where user is sender
-        const { data: sentFriends, error: sentError } = await supabase
-          .from("friendships")
-          .select(
-            `
-            id,
-            status,
-            created_at,
-            profile:receiver_id (
-              id,
-              name,
-              avatar_url,
-              username
-            )
-          `
-          )
-          .eq("sender_id", targetUserId)
-          .eq("status", "accepted");
-
-        if (sentError) throw sentError;
-
-        // Combine both results
-        const allFriends = [
-          ...(receivedFriends || []),
-          ...(sentFriends || []),
-        ].sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-
-        setFriends(allFriends);
+        // Get followers count
+        const { count: followersCount } = await supabase
+          .from("follows")
+          .select("*", { count: "exact", head: true })
+          .eq("followed_id", targetUserId);
+        setFollowersCount(followersCount || 0);
       } catch (err: any) {
-        console.error("Error fetching friends:", err);
+        console.error("Error fetching follows:", err);
         setError(err.message);
       } finally {
-        setLoadingFriends(false);
+        setLoadingFollows(false);
       }
     };
 
-    fetchFriends();
+    fetchFollows();
   }, [userId, user?.id]);
 
   // Fetch vehicles
@@ -567,87 +471,98 @@ export const Profile = () => {
               if (error) throw error;
               // Refresh the page to show the new profile
               window.location.reload();
-            } catch (error: any) {
-              setError(error.message);
+            } catch (err: any) {
+              setError(err.message);
             }
           }}
         >
-          Create Basic Profile
+          Create Profile
         </Button>
       </Box>
     );
   }
 
   return (
-    <Box>
-      <Card sx={{ mb: 4 }}>
+    <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
+      {/* Profile Header */}
+      <Card
+        sx={{
+          position: "relative",
+          mb: 3,
+          background: "linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%)",
+          borderRadius: 3,
+          overflow: "hidden",
+        }}
+      >
         <Box
+          component="img"
+          src={
+            profile?.banner_url ||
+            "https://source.unsplash.com/random/1200x400/?car"
+          }
+          alt="Banner"
           sx={{
-            position: "relative",
+            width: "100%",
             height: 200,
-            bgcolor: "primary.main",
-            backgroundImage: profile?.banner_url
-              ? `url(${profile.banner_url})`
-              : undefined,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
+            objectFit: "cover",
+            display: "block",
           }}
         />
-        <Box sx={{ position: "relative", px: 3, pb: 3 }}>
-          <Avatar
-            src={profile?.avatar_url || ""}
+        {/* Profile Info Row */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "flex-start",
+            px: 4,
+            pb: 4,
+            pt: 0,
+            mt: 0,
+          }}
+        >
+          {/* Avatar on the left */}
+          <Box
             sx={{
+              mt: -10,
+              mr: 4,
+              zIndex: 2,
               width: 120,
               height: 120,
-              border: "4px solid white",
-              position: "absolute",
-              top: -60,
-              left: 24,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            {profile?.name ? profile.name[0] : ""}
-          </Avatar>
-          <Box sx={{ ml: 15, pt: 2 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography variant="h4" component="h1" gutterBottom>
-                {profile?.name}
-              </Typography>
-              {!isOwnProfile && (
-                <Button
-                  variant={
-                    friendshipStatus === "friends" ? "contained" : "outlined"
-                  }
-                  color={friendshipStatus === "friends" ? "success" : "primary"}
-                  startIcon={
-                    friendshipStatus === "friends" ? (
-                      <Check />
-                    ) : friendshipStatus === "pending" ? (
-                      <PersonRemove />
-                    ) : (
-                      <PersonAdd />
-                    )
-                  }
-                  onClick={handleFriendRequest}
-                  disabled={updatingFriendship}
-                  sx={{ ml: 2 }}
-                >
-                  {friendshipStatus === "friends"
-                    ? "Friends"
-                    : friendshipStatus === "pending"
-                    ? "Cancel Request"
-                    : "Add Friend"}
-                </Button>
-              )}
-            </Box>
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+            <Avatar
+              src={profile?.avatar_url}
+              sx={{
+                width: 120,
+                height: 120,
+                border: "4px solid white",
+                boxShadow: 3,
+                background: "#222",
+                fontSize: 48,
+              }}
+            >
+              {profile?.name ? profile.name[0] : ""}
+            </Avatar>
+          </Box>
+          {/* Profile Info on the right */}
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="h4" component="h1" gutterBottom>
+              {profile?.name}
+            </Typography>
+            <Typography variant="subtitle1" color="#d4af37" gutterBottom>
               @{profile?.username}
             </Typography>
-            <Typography variant="body1" paragraph>
-              {profile?.bio}
-            </Typography>
+            {profile?.bio && (
+              <Typography variant="body1" paragraph>
+                {profile?.bio}
+              </Typography>
+            )}
             {isOwnProfile && (
               <>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
+                <Typography variant="body2" color="#d4af37" gutterBottom>
                   {profile?.email}
                 </Typography>
                 <Button
@@ -659,6 +574,22 @@ export const Profile = () => {
                   Edit Profile
                 </Button>
               </>
+            )}
+            {!isOwnProfile && (
+              <Button
+                variant={
+                  followStatus === "following" ? "contained" : "outlined"
+                }
+                color={followStatus === "following" ? "success" : "primary"}
+                startIcon={
+                  followStatus === "following" ? <Check /> : <PersonAdd />
+                }
+                onClick={handleFollowToggle}
+                disabled={updatingFollow}
+                sx={{ mt: 2 }}
+              >
+                {followStatus === "following" ? "Following" : "Follow"}
+              </Button>
             )}
           </Box>
         </Box>
@@ -810,13 +741,54 @@ export const Profile = () => {
                   </Box>
                 </Grid>
                 <Grid item xs={6} sm={3}>
-                  <Box sx={{ textAlign: "center", p: 2 }}>
-                    <Build color="primary" sx={{ fontSize: 40 }} />
+                  <Box
+                    sx={{
+                      textAlign: "center",
+                      p: 2,
+                      cursor: "pointer",
+                      "&:hover": {
+                        backgroundColor: "rgba(25, 118, 210, 0.1)",
+                        borderRadius: 1,
+                      },
+                    }}
+                    onClick={() =>
+                      navigate(
+                        `/friends?tab=following&userId=${userId || user?.id}`
+                      )
+                    }
+                  >
+                    <People color="primary" sx={{ fontSize: 40 }} />
                     <Typography variant="h4" sx={{ my: 1 }}>
-                      {stats.modifications}
+                      {loadingFollows ? "..." : followingCount}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Modifications
+                      Following
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Box
+                    sx={{
+                      textAlign: "center",
+                      p: 2,
+                      cursor: "pointer",
+                      "&:hover": {
+                        backgroundColor: "rgba(25, 118, 210, 0.1)",
+                        borderRadius: 1,
+                      },
+                    }}
+                    onClick={() =>
+                      navigate(
+                        `/friends?tab=followers&userId=${userId || user?.id}`
+                      )
+                    }
+                  >
+                    <People color="primary" sx={{ fontSize: 40 }} />
+                    <Typography variant="h4" sx={{ my: 1 }}>
+                      {loadingFollows ? "..." : followersCount}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Followers
                     </Typography>
                   </Box>
                 </Grid>
@@ -992,55 +964,11 @@ export const Profile = () => {
             <CardContent>
               <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
                 <People sx={{ color: "#d4af37", mr: 1 }} />
-                <Typography variant="h6">Friends</Typography>
+                <Typography variant="h6">Recent Activity</Typography>
               </Box>
-
-              {loadingFriends ? (
-                <Box display="flex" justifyContent="center" p={3}>
-                  <CircularProgress />
-                </Box>
-              ) : friends.length === 0 ? (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  align="center"
-                >
-                  No friends yet
-                </Typography>
-              ) : (
-                <List>
-                  {friends.map((friend) => (
-                    <ListItem
-                      key={friend.id}
-                      sx={{
-                        cursor: "pointer",
-                        "&:hover": {
-                          backgroundColor: "rgba(212, 175, 55, 0.1)",
-                          borderRadius: 1,
-                        },
-                      }}
-                      onClick={() => navigate(`/profile/${friend.profile.id}`)}
-                    >
-                      <ListItemAvatar>
-                        <Avatar
-                          src={friend.profile.avatar_url}
-                          alt={friend.profile.name}
-                        />
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={friend.profile.name}
-                        secondary={`@${friend.profile.username}`}
-                        primaryTypographyProps={{
-                          sx: { color: "#fff" },
-                        }}
-                        secondaryTypographyProps={{
-                          sx: { color: "rgba(255, 255, 255, 0.7)" },
-                        }}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              )}
+              <Typography variant="body2" color="text.secondary" align="center">
+                Activity feed coming soon...
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -1048,12 +976,22 @@ export const Profile = () => {
 
       {/* Move Sign Out button to the bottom of the page */}
       {isOwnProfile && (
-        <Paper sx={{ p: 3, mt: 6, display: "flex", justifyContent: "center", gap: 2 }}>
+        <Paper
+          sx={{
+            p: 3,
+            mt: 6,
+            display: "flex",
+            justifyContent: "center",
+            gap: 2,
+          }}
+        >
           <Button
             variant="outlined"
             color="primary"
             startIcon={<BugReport />}
-            onClick={() => window.open('https://forms.gle/gU5WthFHphXDJNLA8', '_blank')}
+            onClick={() =>
+              window.open("https://forms.gle/gU5WthFHphXDJNLA8", "_blank")
+            }
             sx={{ minWidth: 200 }}
           >
             Report a Bug
