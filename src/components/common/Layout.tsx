@@ -204,7 +204,7 @@ export const Layout = ({ children }: LayoutProps) => {
               </IconButton>
             )}
             <img
-              src="/gearly-v5.png"
+              src="/gearly-v6White.png"
               alt="Gearly Logo"
               style={{
                 height: "40px",
