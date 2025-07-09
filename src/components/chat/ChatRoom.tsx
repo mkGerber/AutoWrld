@@ -716,8 +716,17 @@ export const ChatRoom = () => {
     >
       <Paper elevation={2} sx={{ p: 2, mb: 2 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography variant="h6">{group.name}</Typography>
+          <Box sx={{ flex: 1 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                cursor: "pointer",
+                "&:hover": { textDecoration: "underline" },
+              }}
+              onClick={() => navigate(`/group/${id}/details`)}
+            >
+              {group.name}
+            </Typography>
             <Typography variant="body2" color="text.secondary">
               {group.description}
             </Typography>
@@ -728,22 +737,6 @@ export const ChatRoom = () => {
                 {members.length} members • {onlineMembers.length} online
               </Typography>
             </Box>
-            <IconButton onClick={() => setAddMemberDialogOpen(true)}>
-              <PersonAdd />
-            </IconButton>
-            {isMobile && (
-              <IconButton onClick={() => setMembersDialogOpen(true)}>
-                <Menu />
-              </IconButton>
-            )}
-            {user?.id === group.created_by && (
-              <IconButton onClick={handleOpenSettings}>
-                <Settings />
-              </IconButton>
-            )}
-            <IconButton>
-              <MoreVert />
-            </IconButton>
           </Box>
         </Box>
       </Paper>
@@ -788,7 +781,9 @@ export const ChatRoom = () => {
                       <Avatar
                         src={message.sender.avatar_url}
                         alt={message.sender.name}
-                        onClick={(e) => handleProfileClick(message.sender.id, e)}
+                        onClick={(e) =>
+                          handleProfileClick(message.sender.id, e)
+                        }
                         sx={{
                           cursor: "pointer",
                           "&:hover": {

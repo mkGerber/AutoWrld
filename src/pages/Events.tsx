@@ -14,7 +14,13 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { CalendarMonth, LocationOn, People, Add } from "@mui/icons-material";
+import {
+  CalendarMonth,
+  LocationOn,
+  People,
+  Add,
+  Lock as LockIcon,
+} from "@mui/icons-material";
 import { supabase } from "../services/supabase/client";
 import { AddEventForm } from "../components/events/AddEventForm";
 import { EventRSVP } from "../components/events/EventRSVP";
@@ -362,12 +368,29 @@ export const Events = () => {
                     p: 2,
                   }}
                 >
-                  <Chip
-                    label={event.type}
-                    size="small"
-                    sx={{ mb: 1, fontSize: "0.9rem", height: 22 }}
-                    color="primary"
-                  />
+                  <Box
+                    sx={{ display: "flex", gap: 1, mb: 1, flexWrap: "wrap" }}
+                  >
+                    <Chip
+                      label={event.type}
+                      size="small"
+                      sx={{ fontSize: "0.9rem", height: 22 }}
+                      color="primary"
+                    />
+                    {event.group_chat_id && (
+                      <Chip
+                        label="Private"
+                        size="small"
+                        icon={<LockIcon />}
+                        sx={{
+                          fontSize: "0.9rem",
+                          height: 22,
+                          backgroundColor: theme.palette.warning.main,
+                          color: theme.palette.warning.contrastText,
+                        }}
+                      />
+                    )}
+                  </Box>
                   <Typography
                     gutterBottom
                     variant="h6"
