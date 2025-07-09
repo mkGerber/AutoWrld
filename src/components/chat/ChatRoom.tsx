@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   Paper,
@@ -36,6 +36,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 import { format, isToday, isYesterday } from "date-fns";
+import imageCompression from "browser-image-compression";
 
 interface Message {
   id: string;
@@ -561,12 +562,19 @@ export const ChatRoom = () => {
     try {
       setUploadingImage(true);
 
-      // Upload image to storage
-      const fileExt = file.name.split(".").pop();
+      // Compress the image before upload
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+
+      const compressedFile = await imageCompression(file, options);
+      const fileExt = compressedFile.name.split(".").pop();
       const fileName = `${id}/${Math.random()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from("group-images")
-        .upload(fileName, file);
+        .upload(fileName, compressedFile);
 
       if (uploadError) throw uploadError;
 
@@ -609,11 +617,19 @@ export const ChatRoom = () => {
     let imageUrl = group.image_url;
     try {
       if (editImage) {
-        const fileExt = editImage.name.split(".").pop();
+        // Compress the image before upload
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+
+        const compressedFile = await imageCompression(editImage, options);
+        const fileExt = compressedFile.name.split(".").pop();
         const fileName = `${group.id}/${Math.random()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from("group-images")
-          .upload(fileName, editImage);
+          .upload(fileName, compressedFile);
         if (uploadError) throw uploadError;
         const {
           data: { publicUrl },

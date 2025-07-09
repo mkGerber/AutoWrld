@@ -23,6 +23,7 @@ import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../services/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import imageCompression from "browser-image-compression";
 
 interface GroupChat {
   id: string;
@@ -163,11 +164,19 @@ export const GroupChatList = () => {
     let imageUrl = editingGroup.image_url;
     try {
       if (editImage) {
-        const fileExt = editImage.name.split(".").pop();
+        // Compress the image before upload
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+
+        const compressedFile = await imageCompression(editImage, options);
+        const fileExt = compressedFile.name.split(".").pop();
         const fileName = `${editingGroup.id}/${Math.random()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
           .from("group-images")
-          .upload(fileName, editImage);
+          .upload(fileName, compressedFile);
         if (uploadError) throw uploadError;
         const {
           data: { publicUrl },

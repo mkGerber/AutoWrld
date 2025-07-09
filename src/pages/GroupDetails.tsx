@@ -16,6 +16,11 @@ import {
   Card,
   CardContent,
   Divider,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   CalendarMonth,
@@ -23,6 +28,7 @@ import {
   Settings,
   Event,
   ArrowBack,
+  Delete,
 } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -48,6 +54,8 @@ export const GroupDetails = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -110,6 +118,24 @@ export const GroupDetails = () => {
 
   const isGroupOwner = group?.created_by === user?.id;
   const userRole = members.find((m) => m.user_id === user?.id)?.role;
+
+  const handleRemoveMember = async () => {
+    if (!memberToRemove) return;
+    try {
+      await supabase
+        .from("group_chat_members")
+        .delete()
+        .eq("group_chat_id", id)
+        .eq("user_id", memberToRemove.user_id);
+      setMembers((prev) =>
+        prev.filter((m) => m.user_id !== memberToRemove.user_id)
+      );
+      setRemoveDialogOpen(false);
+      setMemberToRemove(null);
+    } catch (err) {
+      alert("Failed to remove member.");
+    }
+  };
 
   if (loading) {
     return (
@@ -286,6 +312,19 @@ export const GroupDetails = () => {
                         textTransform: "capitalize",
                       }}
                     />
+                    {isGroupOwner && member.user_id !== user?.id && (
+                      <IconButton
+                        color="error"
+                        onClick={() => {
+                          setMemberToRemove(member);
+                          setRemoveDialogOpen(true);
+                        }}
+                        sx={{ ml: 1 }}
+                        aria-label="Remove member"
+                      >
+                        <Delete />
+                      </IconButton>
+                    )}
                   </ListItem>
                 ))}
               </List>
@@ -293,6 +332,28 @@ export const GroupDetails = () => {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Remove Member Dialog */}
+      <Dialog
+        open={removeDialogOpen}
+        onClose={() => setRemoveDialogOpen(false)}
+      >
+        <DialogTitle>Remove Member</DialogTitle>
+        <DialogContent>
+          Are you sure you want to remove {memberToRemove?.user.name} from the
+          group?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRemoveDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleRemoveMember}
+            color="error"
+            variant="contained"
+          >
+            Remove
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

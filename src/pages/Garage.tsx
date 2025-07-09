@@ -1,27 +1,25 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
-  Grid,
   Button,
-  CircularProgress,
+  Grid,
   Alert,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Snackbar,
-  MenuItem,
   Badge,
 } from "@mui/material";
 import { Add, Mail } from "@mui/icons-material";
-import VehicleCard from "../components/garage/VehicleCard";
-import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabase/client";
-import AddVehicleForm from "../components/garage/AddVehicleForm";
+import { useAuth } from "../context/AuthContext";
+import { VehicleCard } from "../components/garage/VehicleCard";
+import { AddVehicleForm } from "../components/garage/AddVehicleForm";
 import { LPRInbox } from "../components/garage/LPRInbox";
-import { useNavigate } from "react-router-dom";
+import imageCompression from "browser-image-compression";
 
 const vehicleTypes = [
   "Project Car",
@@ -113,21 +111,21 @@ export const Garage = () => {
   const handleAddClose = () => setAddOpen(false);
 
   const handleAddVehicle = async (formData: any) => {
+    if (!user) return;
     setSaving(true);
-    let imageUrls: string[] = [];
-    // 1. Insert vehicle without images
-    const insertPayload = {
-      ...formData,
-      year: formData.year ? parseInt(formData.year) : null,
-      user_id: user.id,
-      images: [],
-      modifications: formData.modifications || [],
-      created_at: new Date().toISOString(),
-    };
-    delete insertPayload.files;
+    const imageUrls: string[] = [];
+
+    // 1. Insert vehicle record
     const { data: insertData, error: insertError } = await supabase
       .from("vehicles")
-      .insert(insertPayload)
+      .insert({
+        name: formData.name,
+        make: formData.make,
+        model: formData.model,
+        year: formData.year,
+        user_id: user.id,
+        images: [],
+      })
       .select()
       .single();
     if (insertError) {
@@ -143,24 +141,43 @@ export const Garage = () => {
     // 2. Upload images using vehicleId in the path
     if (formData.files && formData.files.length > 0) {
       for (const file of formData.files) {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${vehicleId}/${Date.now()}_${file.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("vehicle-images")
-          .upload(fileName, file);
-        if (uploadError) {
+        // Compress the image before upload
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+
+        try {
+          const compressedFile = await imageCompression(file, options);
+          const fileExt = compressedFile.name.split(".").pop();
+          const fileName = `${vehicleId}/${Date.now()}_${compressedFile.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from("vehicle-images")
+            .upload(fileName, compressedFile);
+          if (uploadError) {
+            setSnackbar({
+              open: true,
+              message: uploadError.message,
+              severity: "error",
+            });
+            setSaving(false);
+            return;
+          }
+          const publicUrl = supabase.storage
+            .from("vehicle-images")
+            .getPublicUrl(fileName).data.publicUrl;
+          imageUrls.push(publicUrl);
+        } catch (error) {
+          console.error("Error compressing/uploading image:", error);
           setSnackbar({
             open: true,
-            message: uploadError.message,
+            message: `Failed to process image ${file.name}`,
             severity: "error",
           });
           setSaving(false);
           return;
         }
-        const publicUrl = supabase.storage
-          .from("vehicle-images")
-          .getPublicUrl(fileName).data.publicUrl;
-        imageUrls.push(publicUrl);
       }
       // 3. Update vehicle with image URLs
       const { error: updateError } = await supabase

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -21,6 +21,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
 import markerIconImg from "../../assets/Map-marker.png";
+import imageCompression from "browser-image-compression";
 
 interface AddEventFormProps {
   open: boolean;
@@ -101,21 +102,34 @@ export const AddEventForm = ({
   };
 
   const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage
-      .from("event-images")
-      .upload(fileName, file);
+    // Compress the image before upload
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1920,
+      useWebWorker: true,
+    };
 
-    if (uploadError) {
-      throw uploadError;
+    try {
+      const compressedFile = await imageCompression(file, options);
+      const fileExt = compressedFile.name.split(".").pop();
+      const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from("event-images")
+        .upload(fileName, compressedFile);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("event-images").getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error("Error compressing/uploading image:", error);
+      throw new Error("Failed to process image");
     }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("event-images").getPublicUrl(fileName);
-
-    return publicUrl;
   };
 
   const handleMapClick = (e: { latlng: { lat: number; lng: number } }) => {
