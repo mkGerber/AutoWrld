@@ -722,6 +722,7 @@ export const ChatRoom = () => {
               sx={{
                 cursor: "pointer",
                 "&:hover": { textDecoration: "underline" },
+                textAlign: "left",
               }}
               onClick={() => navigate(`/group/${id}/details`)}
             >

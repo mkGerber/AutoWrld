@@ -107,7 +107,7 @@ export const Layout = ({ children }: LayoutProps) => {
     },
     { label: "LPR", path: "/lpr", icon: <PhotoCamera /> },
     { label: "Friends", path: "/friends", icon: <People /> },
-    { label: "Chats", path: "/chats", icon: <Chat /> },
+    { label: "Groups", path: "/chats", icon: <Chat /> },
     { label: "Profile", path: "/profile", icon: <Person /> },
   ];
 

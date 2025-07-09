@@ -710,6 +710,16 @@ export const Profile = () => {
         </Alert>
       </Snackbar>
 
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={() => navigate("/badges")}
+        >
+          View Badges & Achievements
+        </Button>
+      </Box>
+
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
           <Card>

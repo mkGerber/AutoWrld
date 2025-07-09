@@ -37,7 +37,7 @@ interface GroupChat {
   member_count: number;
 }
 
-export const Chats = () => {
+export const Groups = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [groups, setGroups] = useState<GroupChat[]>([]);
@@ -149,7 +149,7 @@ export const Chats = () => {
         mb={3}
       >
         <Typography variant="h4" component="h1">
-          Group Chats
+          Groups
         </Typography>
         <Button
           variant="contained"
@@ -244,7 +244,8 @@ export const Chats = () => {
                     }}
                     onClick={(e) => handleProfileClick(group.created_by.id, e)}
                   >
-                    {!group.created_by.avatar_url && group.created_by.name?.charAt(0)}
+                    {!group.created_by.avatar_url &&
+                      group.created_by.name?.charAt(0)}
                   </Avatar>
                   <Typography
                     variant="caption"

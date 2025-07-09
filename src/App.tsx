@@ -19,9 +19,11 @@ import { EventDetails } from "./pages/EventDetails";
 import { Discover } from "./pages/Discover";
 import { Friends } from "./pages/Friends";
 import { ChatRoom } from "./components/chat/ChatRoom";
-import { Chats } from "./pages/Chats";
+import { Groups } from "./pages/Chats";
 import LPR from "./pages/LPR";
 import { Feed } from "./pages/Feed";
+import { GroupDetails } from "./pages/GroupDetails";
+import { Badges } from "./pages/Badges";
 
 function App() {
   return (
@@ -48,7 +50,7 @@ function App() {
                         <Route path="/profile/:userId" element={<Profile />} />
                         <Route path="/discover" element={<Discover />} />
                         <Route path="/friends" element={<Friends />} />
-                        <Route path="/chats" element={<Chats />} />
+                        <Route path="/chats" element={<Groups />} />
                         <Route
                           path="/vehicle/:id"
                           element={<VehicleDetails />}
@@ -57,6 +59,11 @@ function App() {
                         <Route path="/chat/:id" element={<ChatRoom />} />
                         <Route path="/lpr" element={<LPR />} />
                         <Route path="/feed" element={<Feed />} />
+                        <Route
+                          path="/group/:id/details"
+                          element={<GroupDetails />}
+                        />
+                        <Route path="/badges" element={<Badges />} />
                       </Routes>
                     </ProtectedRoute>
                   }

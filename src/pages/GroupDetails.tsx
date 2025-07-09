@@ -273,6 +273,18 @@ export const GroupDetails = () => {
                       size="small"
                       color={member.role === "admin" ? "primary" : "default"}
                       variant="outlined"
+                      sx={{
+                        width: 130,
+                        height: 32,
+                        fontSize: 16,
+                        fontWeight: 600,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 2,
+                        textAlign: "center",
+                        textTransform: "capitalize",
+                      }}
                     />
                   </ListItem>
                 ))}
