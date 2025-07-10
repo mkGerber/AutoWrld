@@ -16,7 +16,7 @@ import {
 import { Add, Mail } from "@mui/icons-material";
 import { supabase } from "../services/supabase/client";
 import { useAuth } from "../context/AuthContext";
-import { VehicleCard } from "../components/garage/VehicleCard";
+import VehicleCard from "../components/garage/VehicleCard";
 import { AddVehicleForm } from "../components/garage/AddVehicleForm";
 import { LPRInbox } from "../components/garage/LPRInbox";
 import imageCompression from "browser-image-compression";

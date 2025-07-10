@@ -21,6 +21,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CardMedia,
 } from "@mui/material";
 import {
   CalendarMonth,
@@ -56,11 +57,58 @@ export const GroupDetails = () => {
   const [error, setError] = useState<string | null>(null);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
+  // Add state for group vehicles
+  const [groupVehicles, setGroupVehicles] = useState<any[]>([]);
+  const [loadingVehicles, setLoadingVehicles] = useState(true);
 
   useEffect(() => {
     if (id) {
       fetchGroupDetails();
     }
+  }, [id]);
+
+  // Fetch group vehicles
+  useEffect(() => {
+    const fetchGroupVehicles = async () => {
+      if (!id) return;
+      setLoadingVehicles(true);
+      // Step 1: Fetch group_vehicles rows
+      const { data: gvRows, error: gvError } = await supabase
+        .from("group_vehicles")
+        .select("*")
+        .eq("group_chat_id", id);
+      if (gvError || !gvRows) {
+        console.log("GroupGarage fetch error:", gvError);
+        setGroupVehicles([]);
+        setLoadingVehicles(false);
+        return;
+      }
+      // Step 2: Collect all vehicle_ids and user_ids
+      const vehicleIds = [...new Set(gvRows.map((gv) => gv.vehicle_id))];
+      const userIds = [...new Set(gvRows.map((gv) => gv.user_id))];
+      // Step 3: Fetch all vehicles
+      const { data: vehicles, error: vehiclesError } = await supabase
+        .from("vehicles")
+        .select("id, make, model, year, images")
+        .in("id", vehicleIds);
+      // Step 4: Fetch all users
+      const { data: users, error: usersError } = await supabase
+        .from("profiles")
+        .select("id, name, username, avatar_url")
+        .in("id", userIds);
+      // Step 5: Map vehicles and users by id
+      const vehicleMap = new Map((vehicles || []).map((v) => [v.id, v]));
+      const userMap = new Map((users || []).map((u) => [u.id, u]));
+      // Step 6: Combine for display
+      const groupVehiclesData = gvRows.map((gv) => ({
+        ...gv,
+        vehicle: vehicleMap.get(gv.vehicle_id),
+        user: userMap.get(gv.user_id),
+      }));
+      setGroupVehicles(groupVehiclesData);
+      setLoadingVehicles(false);
+    };
+    fetchGroupVehicles();
   }, [id]);
 
   const fetchGroupDetails = async () => {
@@ -157,7 +205,14 @@ export const GroupDetails = () => {
   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
+    <Box
+      sx={{
+        p: { xs: 1, sm: 3 },
+        maxWidth: 1200,
+        mx: "auto",
+        minHeight: "100vh",
+      }}
+    >
       {/* Header */}
       <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
         <Button
@@ -172,97 +227,205 @@ export const GroupDetails = () => {
         </Typography>
       </Box>
 
-      <Grid container spacing={3}>
-        {/* Group Info Card */}
+      <Grid container spacing={4} alignItems="flex-start">
+        {/* Sidebar: Group Info + Garage */}
         <Grid item xs={12} md={4}>
-          <Card sx={{ height: "fit-content" }}>
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <Avatar
-                  src={group.image_url || undefined}
-                  sx={{ width: 80, height: 80, mr: 2 }}
-                >
-                  <Group sx={{ fontSize: 40 }} />
-                </Avatar>
-                <Box>
-                  <Typography variant="h5" component="h2" gutterBottom>
-                    {group.name}
-                  </Typography>
-                  {group.description && (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      gutterBottom
-                    >
-                      {group.description}
+          <Box sx={{ position: { md: "sticky" }, top: { md: 32 }, zIndex: 1 }}>
+            {/* Group Info Card */}
+            <Card sx={{ mb: 3 }}>
+              <CardContent>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                  <Avatar
+                    src={group.image_url || undefined}
+                    sx={{ width: 80, height: 80, mr: 2 }}
+                  >
+                    <Group sx={{ fontSize: 40 }} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" component="h2" gutterBottom>
+                      {group.name}
                     </Typography>
-                  )}
-                  <Typography variant="body2" color="text.secondary">
-                    {members.length} member{members.length !== 1 ? "s" : ""}
-                  </Typography>
+                    {group.description && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        {group.description}
+                      </Typography>
+                    )}
+                    <Typography variant="body2" color="text.secondary">
+                      {members.length} member{members.length !== 1 ? "s" : ""}
+                    </Typography>
+                  </Box>
                 </Box>
-              </Box>
 
-              <Divider sx={{ my: 2 }} />
+                <Divider sx={{ my: 2 }} />
 
-              {/* Action Buttons */}
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<Event />}
-                  onClick={() => navigate(`/create-event?groupChatId=${id}`)}
-                  fullWidth
-                >
-                  Create Event
-                </Button>
-
-                <Button
-                  variant="outlined"
-                  startIcon={<Group />}
-                  onClick={() => navigate(`/group/${id}/members`)}
-                  fullWidth
-                >
-                  View All Members
-                </Button>
-
-                {isGroupOwner && (
+                {/* Action Buttons */}
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   <Button
-                    variant="outlined"
-                    startIcon={<Settings />}
-                    onClick={() => navigate(`/group/${id}/edit`)}
+                    variant="contained"
+                    startIcon={<Event />}
+                    onClick={() => navigate(`/create-event?groupChatId=${id}`)}
                     fullWidth
                   >
-                    Edit Group
+                    Create Event
                   </Button>
+
+                  <Button
+                    variant="outlined"
+                    startIcon={<Group />}
+                    onClick={() => navigate(`/group/${id}/members`)}
+                    fullWidth
+                  >
+                    View All Members
+                  </Button>
+
+                  {isGroupOwner && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<Settings />}
+                      onClick={() => navigate(`/group/${id}/edit`)}
+                      fullWidth
+                    >
+                      Edit Group
+                    </Button>
+                  )}
+                </Box>
+
+                <Divider sx={{ my: 2 }} />
+
+                {/* Group Info */}
+                <Typography variant="h6" gutterBottom>
+                  Group Information
+                </Typography>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                  <CalendarMonth sx={{ mr: 1, color: "text.secondary" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Created {new Date(group.created_at).toLocaleDateString()}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Group sx={{ mr: 1, color: "text.secondary" }} />
+                  <Typography variant="body2" color="text.secondary">
+                    Your role: {userRole || "Member"}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+
+            {/* Group Garage */}
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Group Garage
+                </Typography>
+                {loadingVehicles ? (
+                  <Box
+                    sx={{ display: "flex", justifyContent: "center", my: 4 }}
+                  >
+                    <CircularProgress />
+                  </Box>
+                ) : groupVehicles.length === 0 ? (
+                  <Typography color="text.secondary">
+                    No vehicles in the group garage yet.
+                  </Typography>
+                ) : (
+                  <Grid container spacing={2}>
+                    {groupVehicles.map((gv) => {
+                      // Parse image
+                      let image = "";
+                      try {
+                        if (gv.vehicle?.images) {
+                          const arr =
+                            typeof gv.vehicle.images === "string"
+                              ? JSON.parse(gv.vehicle.images)
+                              : gv.vehicle.images;
+                          image =
+                            Array.isArray(arr) && arr.length > 0 ? arr[0] : "";
+                          if (
+                            typeof image === "string" &&
+                            image.startsWith("[")
+                          )
+                            image = JSON.parse(image)[0];
+                        }
+                      } catch {}
+                      return (
+                        <Grid item xs={12} sm={6} key={gv.id}>
+                          <Card
+                            sx={{
+                              height: 260,
+                              display: "flex",
+                              flexDirection: "column",
+                              borderRadius: 3,
+                              background: "rgba(30,30,40,0.98)",
+                            }}
+                          >
+                            {image && (
+                              <CardMedia
+                                component="img"
+                                image={image}
+                                alt="Vehicle"
+                                sx={{
+                                  height: 100,
+                                  objectFit: "cover",
+                                  borderTopLeftRadius: 12,
+                                  borderTopRightRadius: 12,
+                                }}
+                              />
+                            )}
+                            <CardContent
+                              sx={{
+                                flex: 1,
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "flex-end",
+                                alignItems: "flex-start",
+                                p: 2,
+                              }}
+                            >
+                              <Typography
+                                variant="subtitle1"
+                                sx={{ color: "#fff", fontWeight: 700 }}
+                              >
+                                {gv.vehicle?.year} {gv.vehicle?.make}{" "}
+                                {gv.vehicle?.model}
+                              </Typography>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  mt: 1,
+                                }}
+                              >
+                                <Avatar
+                                  src={gv.user?.avatar_url || undefined}
+                                  sx={{ width: 24, height: 24, mr: 1 }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{ color: "#fff" }}
+                                >
+                                  {gv.user?.name || `@${gv.user?.username}`}
+                                </Typography>
+                              </Box>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
                 )}
-              </Box>
-
-              <Divider sx={{ my: 2 }} />
-
-              {/* Group Info */}
-              <Typography variant="h6" gutterBottom>
-                Group Information
-              </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                <CalendarMonth sx={{ mr: 1, color: "text.secondary" }} />
-                <Typography variant="body2" color="text.secondary">
-                  Created {new Date(group.created_at).toLocaleDateString()}
-                </Typography>
-              </Box>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Group sx={{ mr: 1, color: "text.secondary" }} />
-                <Typography variant="body2" color="text.secondary">
-                  Your role: {userRole || "Member"}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Box>
         </Grid>
 
-        {/* Members List */}
+        {/* Main Content: Members List */}
         <Grid item xs={12} md={8}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ maxHeight: 420, overflowY: "auto", pr: 2 }}>
               <Typography variant="h6" gutterBottom>
                 Members ({members.length})
               </Typography>
@@ -333,7 +496,7 @@ export const GroupDetails = () => {
         </Grid>
       </Grid>
 
-      {/* Remove Member Dialog */}
+      {/* Remove Member Dialog (unchanged) */}
       <Dialog
         open={removeDialogOpen}
         onClose={() => setRemoveDialogOpen(false)}
