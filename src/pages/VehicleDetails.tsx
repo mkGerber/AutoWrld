@@ -57,6 +57,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../services/supabase/client";
 import VehicleComments from "../components/vehicle/VehicleComments";
+import { MaintenanceReminders } from "../components/garage/MaintenanceReminders";
 import { useAuth } from "../context/AuthContext";
 import imageCompression from "browser-image-compression";
 
@@ -1080,6 +1081,7 @@ export const VehicleDetails = () => {
               <Tab label="Overview" />
               <Tab label="Specifications" />
               <Tab label="Build Timeline" />
+              <Tab label="Maintenance" />
               <Tab label="Fan Photos" />
               <Tab label="Wishlist" />
             </Tabs>
@@ -1538,6 +1540,15 @@ export const VehicleDetails = () => {
 
               {selectedTab === 3 && (
                 <Box>
+                  <MaintenanceReminders
+                    vehicleId={vehicle.id}
+                    vehicleMiles={vehicle.miles || 0}
+                  />
+                </Box>
+              )}
+
+              {selectedTab === 5 && (
+                <Box>
                   <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
                     Fan Photos
                     <Typography
@@ -1734,7 +1745,7 @@ export const VehicleDetails = () => {
                 </Box>
               )}
 
-              {selectedTab === 4 && (
+              {selectedTab === 6 && (
                 <Box>
                   <Typography variant={isMobile ? "body1" : "h6"} gutterBottom>
                     Wishlist & To-Do Items
